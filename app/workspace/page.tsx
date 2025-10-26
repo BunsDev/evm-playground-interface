@@ -6,8 +6,8 @@ import {
     useMemo,
     useState,
 } from "react";
-import Playground from "@/app/components/playground";
-import { ABIManager } from "@/app/components/abi-manager";
+import Playground from "@/components/ui/playground";
+import { ABIManager } from "@/components/ui/abi-manager";
 import { Button } from "@/components/ui/button";
 import { scriptDb } from "@/lib/abiDatabase";
 import type { StoredScript } from "@/lib/abiDatabase";
@@ -160,7 +160,7 @@ const WorkspacePage = () => {
                             const isActive = script.id === selectedScriptId;
                             return (
                                 <li key={script.id}>
-                                    <button
+                                    <Button
                                         type="button"
                                         onClick={() => script.id && handleSelectScript(script.id)}
                                         className={`flex w-full flex-col gap-1 px-4 py-3 text-left transition ${
@@ -173,7 +173,7 @@ const WorkspacePage = () => {
                                             <span className="text-sm font-semibold">
                                                 {script.name}
                                             </span>
-                                            <button
+                                            <Button
                                                 type="button"
                                                 onClick={(event) => {
                                                     event.stopPropagation();
@@ -182,7 +182,7 @@ const WorkspacePage = () => {
                                                 className="text-xs text-zinc-400 transition hover:text-red-500"
                                             >
                                                 Delete
-                                            </button>
+                                            </Button>
                                         </div>
                                         {script.description && (
                                             <span className="text-xs text-zinc-500">
@@ -192,7 +192,7 @@ const WorkspacePage = () => {
                                         <span className="text-xs text-zinc-400">
                                             Updated {formatUpdatedAt(script.updatedAt)}
                                         </span>
-                                    </button>
+                                    </Button>
                                 </li>
                             );
                         })}

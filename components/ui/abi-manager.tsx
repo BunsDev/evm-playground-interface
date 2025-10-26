@@ -1,4 +1,4 @@
-import { type FC, useState, useEffect } from "react";
+import { type FC, useState, useEffect, useCallback } from "react";
 import { abiDb } from "@/lib/abiDatabase";
 import type { StoredABI } from "@/lib/abiDatabase";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,9 @@ interface ABIManagerProps {
   onABIChange?: () => void;
 }
 
+/**
+ * Manages locally persisted ABIs so scripts can reuse them inside the playground.
+ */
 export const ABIManager: FC<ABIManagerProps> = ({ onABIChange }) => {
   const [abis, setAbis] = useState<StoredABI[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -16,20 +19,29 @@ export const ABIManager: FC<ABIManagerProps> = ({ onABIChange }) => {
     description: "",
   });
 
-  useEffect(() => {
-    loadABIs();
-  }, []);
-
-  const loadABIs = async () => {
+  const loadABIs = useCallback(async () => {
     const allAbis = await abiDb.abis.toArray();
     setAbis(allAbis);
-  };
+  }, []);
+
+  useEffect(() => {
+    void loadABIs();
+  }, [loadABIs]);
 
   const handleAddABI = async () => {
     try {
-      const abi = JSON.parse(newAbi.abi);
+      const trimmedName = newAbi.name.trim();
+      const rawAbi = newAbi.abi.trim();
+
+      if (!trimmedName || !rawAbi) {
+        alert("Name and ABI JSON are required");
+        return;
+      }
+
+      // Parse once so we fail fast on malformed JSON before mutating state.
+      const abi = JSON.parse(rawAbi);
       await abiDb.abis.add({
-        name: newAbi.name,
+        name: trimmedName,
         abi,
         description: newAbi.description,
         createdAt: new Date(),

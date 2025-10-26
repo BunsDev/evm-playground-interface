@@ -1,9 +1,23 @@
+"use client";
+
 import { useRef, useEffect, useMemo, type FC } from "react";
-import Editor from "@monaco-editor/react";
-import * as monaco from "monaco-editor";
+import dynamic from "next/dynamic";
+import type {
+    editor as MonacoEditorNamespace,
+    languages as MonacoLanguages,
+    Position as MonacoPosition,
+} from "monaco-editor";
+import type { EditorProps } from "@monaco-editor/react";
 import { formatHoverMarkdown } from "@/lib/valueRenderer";
 import { generateABIGlobals } from "@/lib/abiGlobalsGenerator";
 import { abiDb } from "@/lib/abiDatabase";
+
+type MonacoInstance = typeof import("monaco-editor");
+
+const MonacoEditorComponent = dynamic<EditorProps>(
+    async () => (await import("@monaco-editor/react")).default,
+    { ssr: false }
+);
 
 interface CodeEditorLogEntry {
     key: string;
@@ -26,7 +40,10 @@ const CodeEditor: FC<CodeEditorProps> = ({
     logs = [] as CodeEditorLogEntry[],
     showInlineLogs = true,
 }) => {
-    const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+    const editorRef = useRef<MonacoEditorNamespace.IStandaloneCodeEditor | null>(
+        null
+    );
+    const monacoRef = useRef<MonacoInstance | null>(null);
     const decorationsRef = useRef<string[]>([]);
 
     // computes: latest value per key for concise rendering
@@ -53,10 +70,11 @@ const CodeEditor: FC<CodeEditorProps> = ({
     }, []);
 
     const handleEditorDidMount = async (
-        editor: monaco.editor.IStandaloneCodeEditor,
-        monacoInstance: typeof monaco
+        editor: MonacoEditorNamespace.IStandaloneCodeEditor,
+        monacoInstance: MonacoInstance
     ) => {
         editorRef.current = editor;
+        monacoRef.current = monacoInstance;
 
         // ensures models sync eagerly so diagnostics apply immediately
         monacoInstance.languages.typescript.typescriptDefaults.setEagerModelSync(
@@ -194,7 +212,10 @@ const CodeEditor: FC<CodeEditorProps> = ({
 
         // configures: Monaco to show import suggestions for global functions
         monacoInstance.languages.registerCompletionItemProvider("typescript", {
-            provideCompletionItems: (model, position) => {
+            provideCompletionItems: (
+                model: MonacoEditorNamespace.ITextModel,
+                position: MonacoPosition
+            ) => {
                 const word = model.getWordUntilPosition(position);
                 const range = {
                     startLineNumber: position.lineNumber,
@@ -205,13 +226,13 @@ const CodeEditor: FC<CodeEditorProps> = ({
 
                 // gets: viem functions with their correct import paths
                 const viemFunctionMap = extractViemFunctions();
-                const suggestions: monaco.languages.CompletionItem[] = [];
+                const suggestions: MonacoLanguages.CompletionItem[] = [];
 
                 viemFunctionMap.forEach((importPath, funcName) => {
                     if (funcName.toLowerCase().includes(word.word.toLowerCase())) {
                         suggestions.push({
                             label: funcName,
-                            kind: monaco.languages.CompletionItemKind.Function,
+                            kind: monacoInstance.languages.CompletionItemKind.Function,
                             insertText: funcName,
                             range: range,
                             detail: `viem function (from ${importPath})`,
@@ -364,7 +385,10 @@ const CodeEditor: FC<CodeEditorProps> = ({
 
         // adds: global ABI name completion (available everywhere)
         monacoInstance.languages.registerCompletionItemProvider("typescript", {
-            provideCompletionItems: async (model, position) => {
+            provideCompletionItems: async (
+                model: MonacoEditorNamespace.ITextModel,
+                position: MonacoPosition
+            ) => {
                 const word = model.getWordUntilPosition(position);
                 const range = {
                     startLineNumber: position.lineNumber,
@@ -372,20 +396,20 @@ const CodeEditor: FC<CodeEditorProps> = ({
                     startColumn: word.startColumn,
                     endColumn: word.endColumn,
                 };
-                const suggestions: monaco.languages.CompletionItem[] = [];
+                const suggestions: MonacoLanguages.CompletionItem[] = [];
 
-                // gets: all stored ABIs for autocomplete
                 const abis = await abiDb.abis.toArray();
 
                 abis.forEach((abi) => {
                     if (abi.name.toLowerCase().includes(word.word.toLowerCase())) {
                         suggestions.push({
                             label: abi.name,
-                            kind: monaco.languages.CompletionItemKind.Variable,
+                            kind: monacoInstance.languages.CompletionItemKind.Variable,
                             insertText: abi.name,
-                            range: range,
+                            range,
                             detail: `ABI: ${abi.name}`,
-                            documentation: abi.description || `${abi.abi.length} functions`,
+                            documentation:
+                                abi.description ?? `${abi.abi.length} functions`,
                         });
                     }
                 });
@@ -446,7 +470,10 @@ const CodeEditor: FC<CodeEditorProps> = ({
 
         if (!showInlineLogs || latestByKey.size === 0) return;
 
-        const decorations: monaco.editor.IModelDeltaDecoration[] = [];
+        const monacoInstance = monacoRef.current;
+        if (!monacoInstance) return;
+
+        const decorations: MonacoEditorNamespace.IModelDeltaDecoration[] = [];
 
         for (const [key, entry] of latestByKey.entries()) {
             const lineNumber = findLineForKey(model.getValue(), key);
@@ -455,7 +482,7 @@ const CodeEditor: FC<CodeEditorProps> = ({
             const hover = formatHoverMarkdown(entry.value);
 
             decorations.push({
-                range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+                range: new monacoInstance.Range(lineNumber, 1, lineNumber, 1),
                 options: {
                     isWholeLine: false,
                     glyphMarginClassName: "inline-log-glyph",
@@ -488,7 +515,7 @@ const CodeEditor: FC<CodeEditorProps> = ({
 
     return (
         <div className="h-full overflow-hidden">
-            <Editor
+            <MonacoEditorComponent
                 height={height || "100%"}
                 language="typescript"
                 path="file:///playground/main.ts"
