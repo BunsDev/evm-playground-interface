@@ -295,6 +295,23 @@ export const ensureLatestSnippetDefaults = async (): Promise<void> => {
   window.localStorage.setItem(SNIPPET_LIBRARY_VERSION_KEY, SNIPPET_LIBRARY_VERSION);
 };
 
+export const clearSnippetCache = async (): Promise<void> => {
+  if (isBrowser()) {
+    try {
+      window.localStorage.removeItem(CURRENT_SCRIPT_KEY);
+      window.localStorage.removeItem(SNIPPET_LIBRARY_VERSION_KEY);
+    } catch (error) {
+      console.error("Failed to clear snippet cache keys:", error);
+    }
+  }
+
+  try {
+    await abiDb.snippets.clear();
+  } catch (error) {
+    console.error("Failed to clear snippet Dexie table:", error);
+  }
+};
+
 // gets: default script content
 export const DEFAULT_SCRIPT_TEMPLATE = `import { createPublicClient, defineChain, http } from 'viem';
 

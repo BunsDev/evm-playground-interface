@@ -1,6 +1,6 @@
 "use client"
 
-import type { ComponentProps } from "react"
+import { useId, type ComponentProps } from "react"
 import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { XIcon } from "lucide-react"
 
@@ -48,10 +48,17 @@ function SheetContent({
   className,
   children,
   side = "right",
+  fallbackDescription = "Sheet panel containing additional workspace options.",
   ...props
 }: ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
+  fallbackDescription?: string | null
 }) {
+  const generatedId = useId()
+  const { ["aria-describedby"]: describedByProp, ...restProps } = props
+  const descriptionId = describedByProp ?? (fallbackDescription ? `${generatedId}-description` : undefined)
+  const shouldRenderFallbackDescription = describedByProp === undefined && Boolean(fallbackDescription)
+
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -69,9 +76,15 @@ function SheetContent({
             "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t",
           className
         )}
-        {...props}
+        aria-describedby={descriptionId}
+        {...restProps}
       >
         {children}
+        {shouldRenderFallbackDescription && descriptionId ? (
+          <SheetPrimitive.Description id={descriptionId} className="sr-only">
+            {fallbackDescription}
+          </SheetPrimitive.Description>
+        ) : null}
         <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
           <XIcon className="size-4" />
           <span className="sr-only">Close</span>

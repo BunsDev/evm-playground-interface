@@ -1,9 +1,13 @@
 "use client";
 
-import { useState, useEffect, type FC } from "react";
+import { useState, useEffect, useCallback, type FC } from "react";
 import { abiDb } from "@/lib/abiDatabase";
 import type { CodeSnippet } from "@/lib/abiDatabase";
-import { ensureLatestSnippetDefaults, getCoreSnippetDefaults } from "@/lib/snippetStorage";
+import {
+    ensureLatestSnippetDefaults,
+    getCoreSnippetDefaults,
+    clearSnippetCache,
+} from "@/lib/snippetStorage";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -16,6 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 
 const FALLBACK_SNIPPETS: CodeSnippet[] = getCoreSnippetDefaults();
+const IS_DEV = true // process.env.NODE_ENV === "development";
 
 interface SnippetManagerProps {
     onSnippetInsert?: (snippet: CodeSnippet) => void;
@@ -25,31 +30,48 @@ export const SnippetManager: FC<SnippetManagerProps> = ({ onSnippetInsert }) => 
     const [snippets, setSnippets] = useState<CodeSnippet[]>([]);
     const [previewSnippet, setPreviewSnippet] = useState<CodeSnippet | null>(null);
     const [loadError, setLoadError] = useState<string | null>(null);
+    const [clearingCache, setClearingCache] = useState(false);
+
+    const loadSnippets = useCallback(async () => {
+        try {
+            await ensureLatestSnippetDefaults();
+            const dbSnippets = await abiDb.snippets
+                // .orderBy("updatedAt")
+                // .reverse()
+                .toArray();
+            if (dbSnippets.length === 0) {
+                setSnippets(FALLBACK_SNIPPETS);
+            } else {
+                setSnippets(dbSnippets);
+            }
+            setLoadError(null);
+        } catch (error) {
+            console.error("Failed to load snippets:", error);
+            setSnippets(FALLBACK_SNIPPETS);
+            setLoadError("Falling back to bundled snippets.");
+        }
+    }, []);
 
     useEffect(() => {
-        const loadSnippets = async () => {
-            try {
-                await ensureLatestSnippetDefaults();
-                const dbSnippets = await abiDb.snippets
-                    .toArray();
-                if (dbSnippets.length === 0) {
-                    setSnippets(FALLBACK_SNIPPETS);
-                } else {
-                    setSnippets(dbSnippets);
-                }
-                setLoadError(null);
-            } catch (error) {
-                console.error("Failed to load snippets:", error);
-                setSnippets(FALLBACK_SNIPPETS);
-                setLoadError("Falling back to bundled snippets.");
-            }
-        };
-
         void loadSnippets();
-    }, []);
+    }, [loadSnippets]);
 
     const handleInsert = (snippet: CodeSnippet) => {
         onSnippetInsert?.(snippet);
+    };
+
+    const handleClearCache = async () => {
+        if (!IS_DEV) return;
+        setClearingCache(true);
+        try {
+            await clearSnippetCache();
+            await loadSnippets();
+        } catch (error) {
+            console.error("Failed to clear snippet cache:", error);
+            setLoadError("Failed to clear cache. Showing latest available snippets.");
+        } finally {
+            setClearingCache(false);
+        }
     };
 
     const summaryId = previewSnippet ? `snippet-preview-${previewSnippet.slug}-summary` : undefined;
@@ -72,6 +94,20 @@ export const SnippetManager: FC<SnippetManagerProps> = ({ onSnippetInsert }) => 
                     <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
                         {loadError}
                     </p>
+                )}
+                {IS_DEV && (
+                    <div className="flex justify-end">
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleClearCache}
+                            disabled={clearingCache}
+                            className="rounded-full px-3 text-xs font-semibold uppercase tracking-[0.18em]"
+                        >
+                            {clearingCache ? "Clearing..." : "Clear cache"}
+                        </Button>
+                    </div>
                 )}
             </div>
 
