@@ -58,12 +58,7 @@ const Playground: FC<PlaygroundProps> = ({
     useEffect(() => {
         if (!pendingSnippet) return;
 
-        setCode((prev: string) => {
-            const base = prev ?? "";
-            const needsSeparator = base.trim().length > 0 && !base.endsWith("\n\n");
-            const separator = needsSeparator ? "\n\n" : base.endsWith("\n") ? "\n" : "";
-            return `${base}${separator}${pendingSnippet.content}`;
-        });
+        setCode(pendingSnippet.content ?? "");
 
         onSnippetConsumed?.();
     }, [pendingSnippet, onSnippetConsumed]);
