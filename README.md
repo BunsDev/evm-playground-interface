@@ -60,3 +60,7 @@ Upcoming routes such as `/workspace` (interactive modules) and `/docs` (pattern 
 ## Contributing
 
 Issues, feature ideas, and documentation improvements are welcome. The goal is to make experimenting with EVM workflows approachable for both standard production tasks and cutting-edge research.
+
+## Inspiration
+
+This project is inspired by [viem-playground](https://github.com/stephancill/viem-playground) and [foundry-playground](https://github.com/stephancill/foundry-playground).
