@@ -67,20 +67,30 @@ export const ABIManager: FC<ABIManagerProps> = ({ onABIChange }) => {
   };
 
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold">ABI Library</h2>
-        <Button onClick={() => setShowAddForm(true)}>Add ABI</Button>
+    <div className="flex h-full flex-col gap-6 rounded-3xl border border-zinc-200/70 bg-white/70 p-5 shadow-lg shadow-zinc-200/40 backdrop-blur dark:border-zinc-700/60 dark:bg-zinc-900/70 dark:shadow-zinc-900/40">
+      <div className="flex items-center justify-between gap-3">
+        <div className="space-y-1">
+          <h2 className="text-xl font-semibold text-zinc-950 dark:text-zinc-50">ABI Library</h2>
+          <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+            Store contract interfaces for quick imports into your snippets.
+          </p>
+        </div>
+        <Button
+          onClick={() => setShowAddForm(true)}
+          className="rounded-full bg-zinc-950 px-4 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        >
+          Add ABI
+        </Button>
       </div>
 
       {showAddForm && (
-        <div className="mb-4 p-4 border rounded bg-gray-50">
+        <div className="rounded-2xl border border-dashed border-zinc-300 bg-white/80 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/70">
           <input
             type="text"
             placeholder="ABI Name (e.g., CoinbaseSmartWalletABI)"
             value={newAbi.name}
             onChange={(e) => setNewAbi({ ...newAbi, name: e.target.value })}
-            className="w-full p-2 border border-gray-300 rounded mb-2"
+            className="mb-2 w-full rounded-xl border border-zinc-200 bg-white/90 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
           />
           <input
             type="text"
@@ -89,50 +99,69 @@ export const ABIManager: FC<ABIManagerProps> = ({ onABIChange }) => {
             onChange={(e) =>
               setNewAbi({ ...newAbi, description: e.target.value })
             }
-            className="w-full p-2 border border-gray-300 rounded mb-2"
+            className="mb-2 w-full rounded-xl border border-zinc-200 bg-white/90 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
           />
           <textarea
             placeholder="Paste ABI JSON here..."
             value={newAbi.abi}
             onChange={(e) => setNewAbi({ ...newAbi, abi: e.target.value })}
             rows={10}
-            className="w-full p-2 border border-gray-300 rounded mb-2 font-mono text-sm"
+            className="mb-3 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none dark:border-zinc-700 dark:bg-zinc-950/70 dark:text-zinc-100"
           />
-          <div className="flex gap-2">
-            <Button onClick={handleAddABI}>Save ABI</Button>
-            <Button variant="outline" onClick={() => setShowAddForm(false)}>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={handleAddABI}
+              className="rounded-full bg-zinc-950 px-4 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            >
+              Save ABI
+            </Button>
+            <Button
+              variant="outline"
+              className="rounded-full px-4 text-xs font-semibold uppercase tracking-[0.12em]"
+              onClick={() => setShowAddForm(false)}
+            >
               Cancel
             </Button>
           </div>
         </div>
       )}
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {abis.length === 0 ? (
-          <div className="text-gray-500 italic text-center py-8">
+          <div className="rounded-2xl border border-dashed border-zinc-300 bg-white/70 py-10 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-400">
             No ABIs stored yet. Add your first ABI to get started.
           </div>
         ) : (
           abis.map((abi) => (
-            <div key={abi.id} className="p-3 border rounded bg-white">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="font-semibold text-gray-900">{abi.name}</div>
+            <div
+              key={abi.id}
+              className="rounded-2xl border border-zinc-200/80 bg-white/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/70 dark:hover:border-zinc-700"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 space-y-2">
+                  <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                    {abi.name}
+                  </div>
                   {abi.description && (
-                    <div className="text-sm text-gray-600 mt-1">
+                    <div className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">
                       {abi.description}
                     </div>
                   )}
-                  <div className="text-xs text-gray-500 mt-1">
-                    {abi.abi.length} functions • Updated{" "}
+                  <div className="text-xs uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
+                    {Array.isArray(abi.abi)
+                      ? `${abi.abi.length} entries`
+                      : "Custom schema"}
+                    {" • Updated "}
                     {abi.updatedAt.toLocaleDateString()}
                   </div>
                 </div>
                 <Button
                   onClick={() => handleDeleteABI(abi.id!)}
-                  variant="destructive"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="rounded-full border border-transparent bg-zinc-900/5 text-zinc-600 hover:border-zinc-300 hover:bg-white hover:text-zinc-950 dark:bg-zinc-800/40 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-900"
                 >
-                  <Icon icon="lucide:trash" height={12} width={12} />
+                  <Icon icon="lucide:trash" height={14} width={14} />
                 </Button>
               </div>
             </div>

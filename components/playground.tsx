@@ -478,82 +478,100 @@ const Playground: FC<PlaygroundProps> = ({
     };
 
     return (
-        <div className="flex flex-col h-screen bg-gray-50">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
-                <div className="flex items-center gap-4">
-                    <h1 className="text-xl font-bold text-gray-900">Playground</h1>
-                    <div className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded">
-                        Local Workspace
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            onClick={handleRun}
-                            disabled={isRunning}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <Play size={16} />
-                            {isRunning ? "Running..." : "Run"}
-                        </Button>
-                        {isRunning && (
+        <div className="relative flex h-screen w-full bg-linear-to-br from-zinc-100 via-white to-zinc-50 text-zinc-900 dark:from-zinc-950 dark:via-zinc-950/95 dark:to-zinc-900 dark:text-zinc-50">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(244,244,255,0.6),transparent_55%)] dark:bg-[radial-gradient(circle_at_top,rgba(63,63,96,0.35),transparent_55%)]" />
+            <div className="relative mx-auto flex w-full flex-col gap-6 px-6 py-8 lg:max-w-6xl lg:px-10">
+                <header className="rounded-3xl border border-zinc-200/80 bg-white/75 px-6 py-6 shadow-lg shadow-zinc-200/50 backdrop-blur dark:border-zinc-700/60 dark:bg-zinc-900/70 dark:shadow-zinc-900/40">
+                    <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                        <div className="space-y-3">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300">
+                                Local workspace
+                            </div>
+                            <div className="space-y-2">
+                                <h1 className="text-3xl font-semibold text-zinc-950 dark:text-zinc-50">
+                                    Playground
+                                </h1>
+                                <p className="max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+                                    Prototype viem flows, inspect state, and compose snippets in a dedicated EVM workspace.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                             <Button
-                                onClick={handleStop}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                                onClick={handleRun}
+                                disabled={isRunning}
+                                size="lg"
+                                className="rounded-full bg-zinc-950 px-6 text-sm font-semibold uppercase tracking-[0.14em] text-zinc-50 shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
                             >
-                                <Square size={16} />
-                                Stop
+                                <Play className="h-4 w-4" />
+                                {isRunning ? "Running..." : "Run code"}
                             </Button>
-                        )}
-                        <Button
-                            onClick={handleReset}
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                        >
-                            <RotateCcw size={16} />
-                            Reset
-                        </Button>
+                            {isRunning && (
+                                <Button
+                                    onClick={handleStop}
+                                    variant="destructive"
+                                    size="lg"
+                                    className="rounded-full px-5 text-sm font-semibold uppercase tracking-[0.12em]"
+                                >
+                                    <Square className="h-4 w-4" />
+                                    Stop
+                                </Button>
+                            )}
+                            <Button
+                                onClick={handleReset}
+                                variant="outline"
+                                size="lg"
+                                className="rounded-full px-5 text-sm font-semibold uppercase tracking-[0.12em]"
+                            >
+                                <RotateCcw className="h-4 w-4" />
+                                Reset
+                            </Button>
+                            <Button
+                                onClick={handleClearLogs}
+                                variant="ghost"
+                                size="lg"
+                                className="rounded-full px-5 text-sm font-semibold uppercase tracking-[0.12em] text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                            >
+                                Clear logs
+                            </Button>
+                        </div>
                     </div>
-                </div>
-            </div>
+                </header>
 
-            {/* Error banner */}
-            {error && (
-                <div className="p-4 bg-red-50 border-b border-red-200">
-                    <div className="flex items-center gap-2">
-                        <div className="text-red-600 font-semibold">Error:</div>
-                        <div className="text-red-800">{error}</div>
+                {error && (
+                    <div className="rounded-2xl border border-red-200/70 bg-red-50/90 px-4 py-3 text-sm text-red-700 shadow-sm dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-100">
+                        {error}
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Main content */}
-            <div className="flex-1 flex overflow-hidden flex-col md:flex-row">
-                {/* Editor panel */}
-                <div className="flex-1 flex flex-col overflow-hidden min-w-0 min-h-0">
-                    <div className="flex-shrink-0 p-2 bg-gray-100 border-b border-gray-200">
-                        <span className="text-sm font-medium text-gray-700">Editor</span>
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+                    <div className="rounded-3xl border border-zinc-200/80 bg-white/80 shadow-lg shadow-zinc-200/40 backdrop-blur dark:border-zinc-700/60 dark:bg-zinc-900/70 dark:shadow-zinc-900/40">
+                        <div className="flex items-center justify-between border-b border-zinc-200/70 px-5 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:border-zinc-700/60 dark:text-zinc-400">
+                            <span>Editor Surface</span>
+                            <span className="text-[11px] text-zinc-400 dark:text-zinc-500">abi refresh #{abiRefreshKey}</span>
+                        </div>
+                        <div className="h-[min(60vh,540px)] lg:h-[620px]">
+                            <CodeEditor
+                                key={abiRefreshKey}
+                                value={code}
+                                onChange={(value) => setCode(value || "")}
+                                height="100%"
+                                logs={logs.filter((l) => l.source === "inline")}
+                                showInlineLogs={showInlineLogs}
+                            />
+                        </div>
                     </div>
-                    <div className="flex-1 overflow-hidden">
-                        <CodeEditor
-                            key={abiRefreshKey}
-                            value={code}
-                            onChange={(value) => setCode(value || "")}
-                            height="100%"
-                            logs={logs.filter((l) => l.source === "inline")}
-                            showInlineLogs={showInlineLogs}
+
+                    <div className="rounded-3xl border border-zinc-200/80 bg-zinc-950/90 text-zinc-100 shadow-xl shadow-zinc-900/40 backdrop-blur lg:h-[620px] dark:border-zinc-800/70">
+                        <ConsolePanel
+                            logs={logs.filter((l) => l.source === "console")}
+                            onClear={handleClearLogs}
                         />
                     </div>
-                </div>
-
-                {/* Console panel */}
-                <div className="w-full md:w-96 h-64 md:h-auto flex flex-col overflow-hidden border-t md:border-t-0 md:border-l border-gray-200 shrink-0">
-                    <ConsolePanel
-                        logs={logs.filter((l) => l.source === "console")}
-                        onClear={handleClearLogs}
-                    />
                 </div>
             </div>
         </div>
     );
-};
+}
 
 export default Playground;
