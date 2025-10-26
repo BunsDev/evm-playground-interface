@@ -8,26 +8,9 @@ vi.mock("@/lib/esbuild", () => ({
   transpileCode: vi.fn(),
 }));
 
-vi.mock("@/lib/abiDatabase", () => {
-  const orderBy = vi.fn(() => ({
-    reverse: vi.fn(() => ({
-      toArray: vi.fn(() => Promise.resolve([])),
-    })),
-  }));
-
-  return {
-    abiDb: { abis: { toArray: vi.fn(() => Promise.resolve([])) } },
-    scriptDb: {
-      scripts: {
-        orderBy,
-        update: vi.fn(() => Promise.resolve()),
-        get: vi.fn(() => Promise.resolve(null)),
-        add: vi.fn(() => Promise.resolve()),
-        delete: vi.fn(() => Promise.resolve()),
-      },
-    },
-  };
-});
+vi.mock("@/lib/abiDatabase", () => ({
+  abiDb: { abis: { toArray: vi.fn(() => Promise.resolve([])) } },
+}));
 
 vi.mock("@/components/code-editor", () => ({
   __esModule: true,

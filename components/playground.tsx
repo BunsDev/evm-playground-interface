@@ -3,14 +3,12 @@ import { transpileCode } from "@/lib/esbuild";
 import CodeEditor from "./code-editor";
 import ConsolePanel from "./console-panel";
 import { Play, Square, RotateCcw } from "lucide-react";
-import { abiDb, scriptDb } from "@/lib/abiDatabase";
-import type { CodeSnippet, StoredScript } from "@/lib/abiDatabase";
+import { abiDb } from "@/lib/abiDatabase";
+import type { CodeSnippet } from "@/lib/abiDatabase";
 import { Button } from "@/components/ui/button";
 import {
     loadStoredScript,
     saveStoredScript,
-    loadStoredScriptId,
-    saveStoredScriptId,
     getDefaultScriptContent,
 } from "@/lib/scriptStorage";
 
@@ -26,14 +24,12 @@ export interface LogEntry {
 
 interface PlaygroundProps {
     abiRefreshKey?: number;
-    currentScript?: StoredScript | null;
     pendingSnippet?: CodeSnippet | null;
     onSnippetConsumed?: () => void;
 }
 
 const Playground: FC<PlaygroundProps> = ({
     abiRefreshKey = 0,
-    currentScript = null,
     pendingSnippet = null,
     onSnippetConsumed,
 }) => {
@@ -42,20 +38,12 @@ const Playground: FC<PlaygroundProps> = ({
         typeof globalThis !== "undefined" &&
         Boolean((globalThis as Record<string, unknown>).__vitest_worker__);
 
-    // initializes: code from script library || session storage
+    // initializes: default startup code or locally persisted content
     const [code, setCode] = useState(() => {
-        if (currentScript?.content) {
-            return currentScript.content;
-        }
-        return loadStoredScript();
+        const stored = loadStoredScript();
+        return stored || getDefaultScriptContent();
     });
 
-    // loads: saved script ID on initialization
-    const [savedScriptId, setSavedScriptId] = useState<number | null>(() => {
-        return loadStoredScriptId();
-    });
-
-    const previousScriptIdRef = useRef<number | null>(null);
     const isResettingRef = useRef(false);
 
     const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -67,56 +55,10 @@ const Playground: FC<PlaygroundProps> = ({
         setLogs((prev) => [...prev, log]);
     }, []);
 
-    // handles: script loading - prioritize script library over session storage
-    useEffect(() => {
-        const loadScriptContent = async () => {
-            if (isResettingRef.current) {
-                isResettingRef.current = false;
-                return;
-            }
-
-            if (currentScript) {
-                // current script from props takes priority
-                const scriptId = currentScript.id ?? null;
-                setCode(currentScript.content);
-                setSavedScriptId(scriptId);
-                saveStoredScriptId(scriptId);
-            } else if (savedScriptId && !currentScript) {
-                // load saved script from database if we have an ID but no current script
-                try {
-                    const script = await scriptDb.scripts.get(savedScriptId);
-                    if (script) {
-                        setCode(script.content);
-                    } else {
-                        // script no longer exists: clear saved ID
-                        setSavedScriptId(null);
-                        saveStoredScriptId(null);
-                        setCode(getDefaultScriptContent());
-                    }
-                } catch (error) {
-                    console.error("Failed to load saved script:", error);
-                    setSavedScriptId(null);
-                    saveStoredScriptId(null);
-                    setCode(getDefaultScriptContent());
-                }
-            } else {
-                // no script selected: use session storage || default
-                setCode(loadStoredScript());
-                if (savedScriptId !== null) {
-                    setSavedScriptId(null);
-                }
-                saveStoredScriptId(null);
-                previousScriptIdRef.current = null;
-            }
-        };
-
-        loadScriptContent();
-    }, [currentScript, savedScriptId]);
-
     useEffect(() => {
         if (!pendingSnippet) return;
 
-        setCode((prev) => {
+        setCode((prev: string) => {
             const base = prev ?? "";
             const needsSeparator = base.trim().length > 0 && !base.endsWith("\n\n");
             const separator = needsSeparator ? "\n\n" : base.endsWith("\n") ? "\n" : "";
@@ -126,43 +68,13 @@ const Playground: FC<PlaygroundProps> = ({
         onSnippetConsumed?.();
     }, [pendingSnippet, onSnippetConsumed]);
 
-    // auto-saves: script content when it changes
     useEffect(() => {
-        if (!currentScript || currentScript.id == null) {
-            previousScriptIdRef.current = null;
+        if (isResettingRef.current) {
+            isResettingRef.current = false;
             return;
         }
-
-        const currentId = currentScript.id;
-        if (previousScriptIdRef.current !== currentId) {
-            previousScriptIdRef.current = currentId;
-            return;
-        }
-
-        if (code === currentScript.content) {
-            return;
-        }
-
-        const saveScript = async () => {
-            try {
-                await scriptDb.scripts.update(currentId, {
-                    content: code,
-                    updatedAt: new Date(),
-                });
-            } catch (error) {
-                console.error("Failed to save script:", error);
-            }
-        };
-
-        void saveScript();
-    }, [code, currentScript]);
-
-    // auto-saves: to session storage for unsaved changes (when no script is selected)
-    useEffect(() => {
-        if (!currentScript) {
-            saveStoredScript(code);
-        }
-    }, [code, currentScript]);
+        saveStoredScript(code);
+    }, [code]);
 
     const handleError = useCallback((error: Error) => {
         setError(error.message);
@@ -559,11 +471,8 @@ const Playground: FC<PlaygroundProps> = ({
     const handleReset = () => {
         const defaultCode = getDefaultScriptContent();
         isResettingRef.current = true;
-        previousScriptIdRef.current = null;
-        setSavedScriptId(null);
-        saveStoredScriptId(null);
-        saveStoredScript(defaultCode);
         setCode(defaultCode);
+        saveStoredScript(defaultCode);
         setLogs([]);
         setError(null);
     };
@@ -574,15 +483,9 @@ const Playground: FC<PlaygroundProps> = ({
             <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
                 <div className="flex items-center gap-4">
                     <h1 className="text-xl font-bold text-gray-900">Playground</h1>
-                    {currentScript ? (
-                        <div className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded">
-                            {currentScript.name}
-                        </div>
-                    ) : (
-                        <div className="text-sm text-amber-600 bg-amber-50 px-3 py-1 rounded border border-amber-200">
-                            Unsaved Changes
-                        </div>
-                    )}
+                    <div className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded">
+                        Local Workspace
+                    </div>
                     <div className="flex items-center gap-2">
                         <Button
                             onClick={handleRun}

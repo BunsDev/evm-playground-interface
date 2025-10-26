@@ -58,16 +58,6 @@ export interface CodeSnippet {
   updatedAt: Date;
 }
 
-export interface StoredScript {
-  id?: number;
-  slug: string;
-  name: string;
-  content: string;
-  description?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 type Seed<T> = Omit<T, "createdAt" | "updatedAt">;
 
 const timestamp = () => new Date();
@@ -258,67 +248,10 @@ export async function transfer(to, amount) {
   },
 ];
 
-const SCRIPT_SEEDS: Seed<StoredScript>[] = [
-  {
-    id: 1,
-    slug: "mainnet-stats",
-    name: "Mainnet Stats",
-    description: "Fetch latest block, chain id, and gas price",
-    content: `import { createPublicClient, http } from "viem";
-import { mainnet } from "viem/chains";
-
-const client = createPublicClient({
-  chain: mainnet,
-  transport: http("https://eth.llamarpc.com"),
-});
-
-export async function run() {
-  const [blockNumber, chainId, gasPrice] = await Promise.all([
-    client.getBlockNumber(),
-    client.getChainId(),
-    client.getGasPrice(),
-  ]);
-
-  console.log("Latest block:", blockNumber);
-  console.log("Chain ID:", chainId);
-  console.log("Gas price:", gasPrice);
-}
-
-await run();
-`,
-  },
-  {
-    id: 2,
-    slug: "block-inspector",
-    name: "Block Inspector",
-    description: "Inspect transactions in a recent block",
-    content: `import { createPublicClient, http } from "viem";
-import { mainnet } from "viem/chains";
-
-const client = createPublicClient({
-  chain: mainnet,
-  transport: http("https://eth.llamarpc.com"),
-});
-
-export async function run() {
-  const latest = await client.getBlockNumber();
-  const block = await client.getBlock({ blockNumber: latest });
-
-  console.log("Block", latest.toString());
-  console.log("Hash", block.hash);
-  console.log("Transaction count", block.transactions.length);
-}
-
-await run();
-`,
-  },
-];
-
 class PlaygroundDatabase extends Dexie {
   chains!: Table<StoredChain, number>;
   contracts!: Table<StoredContract, number>;
   abis!: Table<StoredABI, number>;
-  scripts!: Table<StoredScript, number>;
   snippets!: Table<CodeSnippet, number>;
   contractAddresses!: Table<ContractAddressMapping, number>;
 
@@ -329,7 +262,6 @@ class PlaygroundDatabase extends Dexie {
       chains: "++id, slug, chainId, name",
       contracts: "++id, slug, abiSlug, name",
       abis: "++id, slug, name",
-      scripts: "++id, slug, name",
       snippets: "++id, slug, category",
       contractAddresses: "++id, chainSlug, contractSlug",
     }).upgrade(async (transaction) => {
@@ -352,7 +284,6 @@ class PlaygroundDatabase extends Dexie {
       await this.contracts.bulkAdd(CONTRACT_SEEDS.map(decorate));
       await this.contractAddresses.bulkAdd(CONTRACT_ADDRESS_SEEDS.map(decorate));
       await this.snippets.bulkAdd(SNIPPET_SEEDS.map(decorate));
-      await this.scripts.bulkAdd(SCRIPT_SEEDS.map(decorate));
     };
 
     if (transaction) {
@@ -360,7 +291,7 @@ class PlaygroundDatabase extends Dexie {
     } else {
       await this.transaction(
         "rw",
-        [this.chains, this.contracts, this.abis, this.contractAddresses, this.snippets, this.scripts],
+        [this.chains, this.contracts, this.abis, this.contractAddresses, this.snippets],
         run,
       );
     }
@@ -375,4 +306,3 @@ export const snippetsTable = playgroundDb.snippets;
 export const contractAddressesTable = playgroundDb.contractAddresses;
 
 export const abiDb = playgroundDb;
-export const scriptDb = playgroundDb;

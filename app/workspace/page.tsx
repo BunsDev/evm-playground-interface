@@ -1,57 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Playground from "@/components/playground";
 import Sidebar from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { Library } from "lucide-react";
-import type { CodeSnippet, StoredScript } from "@/lib/abiDatabase";
-import { scriptDb } from "@/lib/abiDatabase";
+import type { CodeSnippet } from "@/lib/abiDatabase";
 
 function App() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [abiRefreshKey, setAbiRefreshKey] = useState(0);
-  const [currentScript, setCurrentScript] = useState<StoredScript | null>(null);
   const [pendingSnippet, setPendingSnippet] = useState<CodeSnippet | null>(null);
-
-  // Load saved script on app initialization
-  useEffect(() => {
-    const loadSavedScript = async () => {
-      try {
-        const savedId = localStorage.getItem(
-          "viem-playground-current-script-id"
-        );
-        if (savedId) {
-          const scriptId = parseInt(savedId, 10);
-          const script = await scriptDb.scripts.get(scriptId);
-          if (script) {
-            setCurrentScript(script);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to load saved script on app start:", error);
-      }
-    };
-
-    loadSavedScript();
-  }, []);
 
   const handleABIChange = () => {
     setAbiRefreshKey((prev) => prev + 1);
   };
 
-  const handleScriptLoad = (script: StoredScript) => {
-    setCurrentScript(script);
-    setShowSidebar(false);
-  };
-
-  const handleScriptCreate = (script: StoredScript) => {
-    setCurrentScript(script);
-    setShowSidebar(false);
-  };
-
   const handleSnippetInsert = (snippet: CodeSnippet) => {
     setPendingSnippet(snippet);
+    setShowSidebar(false);
   };
 
   return (
@@ -60,7 +27,6 @@ function App() {
       <div className="flex-1 min-w-0">
         <Playground
           abiRefreshKey={abiRefreshKey}
-          currentScript={currentScript}
           pendingSnippet={pendingSnippet}
           onSnippetConsumed={() => setPendingSnippet(null)}
         />
@@ -70,10 +36,7 @@ function App() {
       <Sidebar
         open={showSidebar}
         onOpenChange={setShowSidebar}
-        onScriptLoad={handleScriptLoad}
-        onScriptCreate={handleScriptCreate}
         onABIChange={handleABIChange}
-        currentScript={currentScript}
         onSnippetInsert={handleSnippetInsert}
       />
 

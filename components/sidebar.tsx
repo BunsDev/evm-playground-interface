@@ -7,27 +7,20 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ABIManager } from "./abi-manager";
-import { ScriptManager } from "./script-manager";
 import { SnippetManager } from "./snippet-manager";
-import type { CodeSnippet, StoredScript } from "@/lib/abiDatabase";
+import type { CodeSnippet } from "@/lib/abiDatabase";
 
 interface SidebarProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onScriptLoad?: (script: StoredScript) => void;
-  onScriptCreate?: (script: StoredScript) => void;
   onABIChange?: () => void;
-  currentScript?: StoredScript | null;
   onSnippetInsert?: (snippet: CodeSnippet) => void;
 }
 
 const Sidebar = ({
   open,
   onOpenChange,
-  onScriptLoad,
-  onScriptCreate,
   onABIChange,
-  currentScript,
   onSnippetInsert,
 }: SidebarProps) => {
   return (
@@ -37,19 +30,11 @@ const Sidebar = ({
           <SheetTitle>Playground Library</SheetTitle>
         </SheetHeader>
         <div className="px-6">
-          <Tabs defaultValue="scripts" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="scripts">Scripts</TabsTrigger>
+          <Tabs defaultValue="snippets" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="snippets">Snippets</TabsTrigger>
               <TabsTrigger value="abis">ABIs</TabsTrigger>
             </TabsList>
-            <TabsContent value="scripts" className="mt-4">
-              <ScriptManager
-                onScriptLoad={onScriptLoad}
-                onScriptCreate={onScriptCreate}
-                currentScript={currentScript}
-              />
-            </TabsContent>
             <TabsContent value="snippets" className="mt-4">
               <SnippetManager onSnippetInsert={onSnippetInsert} />
             </TabsContent>
