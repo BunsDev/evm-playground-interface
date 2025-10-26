@@ -314,6 +314,43 @@ const CodeEditor: FC<CodeEditorProps> = ({
             "export * from './_types/index.d.ts';\n",
             "file:///node_modules/viem/index.d.ts"
         );
+        monacoInstance.languages.typescript.typescriptDefaults.addExtraLib(
+            `declare module "viem" {
+  export function http(
+    urlOrOptions?: string | { url?: string; batch?: { wait?: number; batchSize?: number }; [key: string]: unknown }
+  ): unknown;
+  export function createPublicClient(
+    config: {
+      chain: unknown;
+      transport: unknown;
+      [key: string]: unknown;
+    }
+  ): {
+    getBlockNumber(): Promise<unknown>;
+    getChainId(): Promise<unknown>;
+    getGasPrice(): Promise<unknown>;
+  };
+}
+`,
+            "file:///node_modules/viem/http-augmentation.d.ts"
+        );
+        monacoInstance.languages.typescript.typescriptDefaults.addExtraLib(
+            `declare module "viem/chains" {
+  export interface Chain {
+    id: number;
+    name: string;
+    rpcUrls: {
+      public: { http: string[] };
+      default: { http: string[] };
+    };
+    [key: string]: unknown;
+  }
+
+  export const mainnet: Chain;
+}
+`,
+            "file:///node_modules/viem/chains-augmentation.d.ts"
+        );
         // generates: wrappers for every subpath that has an index.ts under _types
         const viemSubmoduleIndexFiles: Record<string, string> =
             typeof globImport === "function"

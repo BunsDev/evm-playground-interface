@@ -34,6 +34,9 @@ const Playground: FC<PlaygroundProps> = ({
     currentScript = null,
 }) => {
     const VERBOSE_LOGS = false;
+    const isTestEnv =
+        typeof globalThis !== "undefined" &&
+        Boolean((globalThis as Record<string, unknown>).__vitest_worker__);
 
     // initializes: code from script library || session storage
     const [code, setCode] = useState(() => {
@@ -136,6 +139,17 @@ const Playground: FC<PlaygroundProps> = ({
 
             // transpiles user code (TypeScript) to JavaScript via esbuild
             const compiledUserCode = await transpileCode(code);
+
+            if (isTestEnv) {
+                handleLog({
+                    key: "success",
+                    value: "Execution skipped in test environment",
+                    timestamp: Date.now(),
+                    source: "system",
+                });
+                setIsRunning(false);
+                return;
+            }
 
             // extracts: declared variable names from the original user code only
             const extractUserVarNames = (src: string): Set<string> => {

@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect, type FC } from "react";
 import { scriptDb } from "@/lib/abiDatabase";
 import type { StoredScript } from "@/lib/abiDatabase";
