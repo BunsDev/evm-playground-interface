@@ -13,7 +13,7 @@ export const initializeEsbuild = async (): Promise<void> => {
 
   try {
     await esbuild.initialize({
-      wasmURL: "https://esm.sh/esbuild-wasm@0.25.9/esbuild.wasm",
+      wasmURL: "https://esm.sh/esbuild-wasm@0.25.11/esbuild.wasm",
       worker: true,
     });
     esbuildInitialized = true;

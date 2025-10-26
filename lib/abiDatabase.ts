@@ -48,7 +48,7 @@ import { mainnet } from "viem/chains";
 
 const client = createPublicClient({
   chain: mainnet,
-  transport: http(mainnet.rpcUrls.public.http[0]),
+  transport: http("https://eth.llamarpc.com"),
 });
 
 export async function run() {
@@ -76,7 +76,7 @@ import { mainnet } from "viem/chains";
 
 const client = createPublicClient({
   chain: mainnet,
-  transport: http(mainnet.rpcUrls.public.http[0]),
+  transport: http("https://eth.llamarpc.com"),
 });
 
 export async function run() {

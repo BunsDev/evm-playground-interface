@@ -14,6 +14,9 @@
     "composite": true,
     "incremental": true,
     "noEmit": true,
+    "jsx": "react-jsx",
+    "types": ["react", "react-dom"],
+    "skipLibCheck": true,
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "vite.config.ts"],
   "exclude": ["node_modules", "dist"]

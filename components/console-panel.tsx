@@ -59,9 +59,9 @@ const ConsolePanel: FC<ConsolePanelProps> = ({
                     </div>
                 ) : (
                     <div className="space-y-1">
-                        {logs.map((log) => (
+                        {logs.map((log, index) => (
                             <div
-                                key={`${log.key}-${log.timestamp}`}
+                                key={`${log.key}-${log.timestamp}-${index}`}
                                 className="flex items-start gap-2 p-1 rounded hover:bg-gray-800"
                             >
                                 <span className="text-gray-500 text-xs shrink-0">
