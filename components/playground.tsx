@@ -2,15 +2,15 @@ import { useState, useCallback, useEffect, useRef, type FC } from "react";
 import { transpileCode } from "@/lib/esbuild";
 import CodeEditor from "./code-editor";
 import ConsolePanel from "./console-panel";
-import { Play, Square, RotateCcw } from "lucide-react";
+import { Play, Square, RotateCcw, Trash } from "lucide-react";
 import { abiDb } from "@/lib/abiDatabase";
 import type { CodeSnippet } from "@/lib/abiDatabase";
 import { Button } from "@/components/ui/button";
 import {
-    loadStoredScript,
-    saveStoredScript,
-    getDefaultScriptContent,
-} from "@/lib/scriptStorage";
+    loadStoredSnippet,
+    saveStoredSnippet,
+    getDefaultSnippetContent,
+} from "@/lib/snippetStorage";
 
 export interface LogEntry {
     key: string;
@@ -40,8 +40,8 @@ const Playground: FC<PlaygroundProps> = ({
 
     // initializes: default startup code or locally persisted content
     const [code, setCode] = useState(() => {
-        const stored = loadStoredScript();
-        return stored || getDefaultScriptContent();
+        const stored = loadStoredSnippet();
+        return stored || getDefaultSnippetContent();
     });
 
     const isResettingRef = useRef(false);
@@ -68,7 +68,7 @@ const Playground: FC<PlaygroundProps> = ({
             isResettingRef.current = false;
             return;
         }
-        saveStoredScript(code);
+        saveStoredSnippet(code);
     }, [code]);
 
     const handleError = useCallback((error: Error) => {
@@ -464,10 +464,10 @@ const Playground: FC<PlaygroundProps> = ({
     };
 
     const handleReset = () => {
-        const defaultCode = getDefaultScriptContent();
+        const defaultCode = getDefaultSnippetContent();
         isResettingRef.current = true;
         setCode(defaultCode);
-        saveStoredScript(defaultCode);
+        saveStoredSnippet(defaultCode);
         setLogs([]);
         setError(null);
     };
@@ -491,43 +491,44 @@ const Playground: FC<PlaygroundProps> = ({
                                 </p>
                             </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                        <div className="flex flex-cols items-center gap-2">
                             <Button
                                 onClick={handleRun}
                                 disabled={isRunning}
-                                size="lg"
+                                size="sm"
                                 className="rounded-full bg-zinc-950 px-6 text-sm font-semibold uppercase tracking-[0.14em] text-zinc-50 shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
                             >
                                 <Play className="h-4 w-4" />
-                                {isRunning ? "Running..." : "Run code"}
+                                <span className="sr-only">{isRunning ? "Running..." : "Run"}</span>
                             </Button>
                             {isRunning && (
                                 <Button
                                     onClick={handleStop}
                                     variant="destructive"
-                                    size="lg"
+                                    size="sm"
                                     className="rounded-full px-5 text-sm font-semibold uppercase tracking-[0.12em]"
                                 >
                                     <Square className="h-4 w-4" />
-                                    Stop
+                                    <span className="sr-only">Stop</span>
                                 </Button>
                             )}
                             <Button
                                 onClick={handleReset}
                                 variant="outline"
-                                size="lg"
+                                size="sm"
                                 className="rounded-full px-5 text-sm font-semibold uppercase tracking-[0.12em]"
                             >
                                 <RotateCcw className="h-4 w-4" />
-                                Reset
+                                <span className="sr-only">Reset</span>
                             </Button>
                             <Button
                                 onClick={handleClearLogs}
-                                variant="ghost"
-                                size="lg"
-                                className="rounded-full px-5 text-sm font-semibold uppercase tracking-[0.12em] text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                                variant="destructive"
+                                size="sm"
+                                className="rounded-full px-5 text-sm font-semibold uppercase tracking-[0.12em]"
                             >
-                                Clear logs
+                                <Trash className="h-4 w-4" />
+                                <span className="sr-only">Clear logs</span>
                             </Button>
                         </div>
                     </div>
@@ -539,7 +540,7 @@ const Playground: FC<PlaygroundProps> = ({
                     </div>
                 )}
 
-                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+                <div className="flex flex-col gap-6">
                     <div className="rounded-3xl border border-zinc-200/80 bg-white/80 shadow-lg shadow-zinc-200/40 backdrop-blur dark:border-zinc-700/60 dark:bg-zinc-900/70 dark:shadow-zinc-900/40">
                         <div className="flex items-center justify-between border-b border-zinc-200/70 px-5 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:border-zinc-700/60 dark:text-zinc-400">
                             <span>Editor Surface</span>
@@ -557,12 +558,10 @@ const Playground: FC<PlaygroundProps> = ({
                         </div>
                     </div>
 
-                    <div className="rounded-3xl border border-zinc-200/80 bg-zinc-950/90 text-zinc-100 shadow-xl shadow-zinc-900/40 backdrop-blur lg:h-[620px] dark:border-zinc-800/70">
-                        <ConsolePanel
-                            logs={logs.filter((l) => l.source === "console")}
-                            onClear={handleClearLogs}
-                        />
-                    </div>
+                    <ConsolePanel
+                        logs={logs.filter((l) => l.source === "console")}
+                        onClear={handleClearLogs}
+                    />
                 </div>
             </div>
         </div>

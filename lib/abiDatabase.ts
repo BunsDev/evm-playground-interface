@@ -45,7 +45,17 @@ export interface ContractAddressMapping {
   updatedAt: Date;
 }
 
-export type SnippetCategory = "setup" | "read" | "write" | "events" | "utility";
+export type SnippetCategory =
+  | "setup"
+  | "read"
+  | "write"
+  | "events"
+  | "utility"
+  | "account"
+  | "blocks"
+  | "contracts"
+  | "gas"
+  | "transactions";
 
 export interface CodeSnippet {
   id?: number;
@@ -195,55 +205,6 @@ export const client = createPublicClient({
   chain: mainnet,
   transport: http("https://eth.llamarpc.com"),
 });
-`,
-  },
-  {
-    id: 3,
-    slug: "erc20-read-balance",
-    title: "Read ERC-20 balance",
-    category: "read",
-    summary: "Calls balanceOf using the minimal ERC-20 ABI.",
-    content: `import { client } from "./setup-public-client";
-import { erc20Minimal } from "./erc20-abi-definition";
-
-export async function readBalance(holder) {
-  const balance = await client.readContract({
-    address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-    abi: erc20Minimal,
-    functionName: "balanceOf",
-    args: [holder],
-  });
-
-  console.log("Balance:", balance);
-}
-`,
-  },
-  {
-    id: 4,
-    slug: "erc20-transfer",
-    title: "Send ERC-20 transfer",
-    category: "write",
-    summary: "Illustrates how to craft a transfer transaction using viem.",
-    content: `import { createWalletClient, http } from "viem";
-import { mainnet } from "viem/chains";
-import { erc20Minimal } from "./erc20-abi-definition";
-
-const walletClient = createWalletClient({
-  account: "0x...", // replace with signer address
-  chain: mainnet,
-  transport: http("https://eth.llamarpc.com"),
-});
-
-export async function transfer(to, amount) {
-  const txHash = await walletClient.writeContract({
-    address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-    abi: erc20Minimal,
-    functionName: "transfer",
-    args: [to, amount],
-  });
-
-  console.log("Submitted tx:", txHash);
-}
 `,
   },
 ];

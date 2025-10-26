@@ -12,6 +12,10 @@ import {
   Plus,
   PanelsTopLeft,
   Brain,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
 } from "lucide-react";
 import Playground from "@/components/playground";
 import Sidebar from "@/components/sidebar";
@@ -143,20 +147,33 @@ function WorkspaceList({ onSelect }: { onSelect?: () => void }) {
   );
 }
 
-function WorkspaceSwitcher({ onSelect }: { onSelect?: () => void }) {
+function WorkspaceSwitcher({ onSelect, onClose }: { onSelect?: () => void; onClose?: () => void }) {
   return (
     <div className="hidden h-full w-80 flex-col border-r border-zinc-200/70 bg-white/70 backdrop-blur-sm dark:border-zinc-800/60 dark:bg-zinc-950/70 lg:flex">
       <div className="border-b border-zinc-200/70 px-6 py-5 dark:border-zinc-800/60">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <div className="space-y-1">
             <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
               Workspaces
             </h2>
             <p className="text-xs text-zinc-400 dark:text-zinc-500">Switch contexts, repos, and boards</p>
           </div>
-          <Button size="icon" variant="ghost" className="rounded-full border border-transparent hover:border-zinc-200">
-            <Plus className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button size="icon" variant="ghost" className="rounded-full border border-transparent hover:border-zinc-200">
+              <Plus className="h-4 w-4" />
+            </Button>
+            {onClose && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={onClose}
+                aria-label="Collapse workspace sidebar"
+                className="rounded-full text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900/60"
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
       <ScrollArea className="flex-1 px-4 py-4">
@@ -266,10 +283,12 @@ function useIntelligenceCards({
 function IntelligenceDock({
   onOpenSnippets,
   onABIChange,
+  onClose,
   className,
 }: {
   onOpenSnippets: () => void;
   onABIChange: () => void;
+  onClose?: () => void;
   className?: string;
 }) {
   const cards = useIntelligenceCards({ onOpenSnippets, onABIChange });
@@ -281,14 +300,27 @@ function IntelligenceDock({
         "hidden h-full w-96 flex-col gap-4 border-l border-zinc-200/70 bg-white/80 px-4 py-6 shadow-inner dark:border-zinc-800/60 dark:bg-zinc-950/70 xl:flex"
       }
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <div className="space-y-1">
           <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
             Intelligence Dock
           </h3>
           <p className="text-xs text-zinc-400 dark:text-zinc-500">AI, context, and runtime signals</p>
         </div>
-        <div className="flex h-3 w-3 animate-ping rounded-full bg-emerald-400" aria-hidden />
+        <div className="flex items-center gap-2">
+          <div className="flex h-3 w-3 animate-ping rounded-full bg-emerald-400" aria-hidden />
+          {onClose && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={onClose}
+              aria-label="Collapse intelligence dock"
+              className="rounded-full text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900/60"
+            >
+              <PanelRightClose className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
       <ScrollArea className="flex-1">
         <div className="space-y-4 pb-8">
@@ -321,6 +353,8 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [workspaceSheetOpen, setWorkspaceSheetOpen] = useState(false);
   const [intelSheetOpen, setIntelSheetOpen] = useState(false);
+  const [workspaceSidebarVisible, setWorkspaceSidebarVisible] = useState(true);
+  const [intelligenceDockVisible, setIntelligenceDockVisible] = useState(true);
 
   const handleABIChange = () => {
     setAbiRefreshKey((prev) => prev + 1);
@@ -351,7 +385,24 @@ function App() {
       <div className="flex flex-1 flex-col pb-24 lg:pb-0">
         <div className="flex flex-1 overflow-hidden lg:overflow-visible">
           <CommandRail onThemeToggle={handleThemeToggle} />
-          <WorkspaceSwitcher onSelect={() => setWorkspaceSheetOpen(false)} />
+          {workspaceSidebarVisible ? (
+            <WorkspaceSwitcher
+              onSelect={() => setWorkspaceSheetOpen(false)}
+              onClose={() => setWorkspaceSidebarVisible(false)}
+            />
+          ) : (
+            <div className="hidden h-full w-12 flex-col items-start justify-start border-r border-transparent px-2 py-6 lg:flex">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setWorkspaceSidebarVisible(true)}
+                aria-label="Expand workspace sidebar"
+                className="rounded-full border border-zinc-200/70 bg-white/80 text-zinc-500 shadow-sm transition hover:bg-white hover:text-zinc-900 dark:border-zinc-800/60 dark:bg-zinc-900/80 dark:text-zinc-300 dark:hover:bg-zinc-900"
+              >
+                <PanelLeftOpen className="h-5 w-5" />
+              </Button>
+            </div>
+          )}
           <div className="relative flex min-w-0 flex-1">
             <Playground
               abiRefreshKey={abiRefreshKey}
@@ -365,10 +416,25 @@ function App() {
               onSnippetInsert={handleSnippetInsert}
             />
           </div>
-          <IntelligenceDock
-            onOpenSnippets={() => setSidebarOpen(true)}
-            onABIChange={handleABIChange}
-          />
+          {intelligenceDockVisible ? (
+            <IntelligenceDock
+              onOpenSnippets={() => setSidebarOpen(true)}
+              onABIChange={handleABIChange}
+              onClose={() => setIntelligenceDockVisible(false)}
+            />
+          ) : (
+            <div className="hidden h-full w-12 flex-col items-end justify-start border-l border-transparent px-2 py-6 xl:flex">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setIntelligenceDockVisible(true)}
+                aria-label="Expand intelligence dock"
+                className="rounded-full border border-zinc-200/70 bg-white/80 text-zinc-500 shadow-sm transition hover:bg-white hover:text-zinc-900 dark:border-zinc-800/60 dark:bg-zinc-900/80 dark:text-zinc-300 dark:hover:bg-zinc-900"
+              >
+                <PanelRightOpen className="h-5 w-5" />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
       <MobileActionBar
