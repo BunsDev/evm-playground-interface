@@ -2,6 +2,7 @@ import { type FC, useState, useEffect, useCallback } from "react";
 import { abiDb } from "@/lib/abiDatabase";
 import type { StoredABI } from "@/lib/abiDatabase";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@iconify/react";
 
 interface ABIManagerProps {
   onABIChange?: () => void;
@@ -46,6 +47,7 @@ export const ABIManager: FC<ABIManagerProps> = ({ onABIChange }) => {
         description: newAbi.description,
         createdAt: new Date(),
         updatedAt: new Date(),
+        slug: ""
       });
       setNewAbi({ name: "", abi: "", description: "" });
       setShowAddForm(false);
@@ -130,7 +132,7 @@ export const ABIManager: FC<ABIManagerProps> = ({ onABIChange }) => {
                   onClick={() => handleDeleteABI(abi.id!)}
                   variant="destructive"
                 >
-                  Delete
+                  <Icon icon="lucide:trash" height={12} width={12} />
                 </Button>
               </div>
             </div>

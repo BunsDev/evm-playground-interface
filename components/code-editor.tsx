@@ -46,6 +46,20 @@ const CodeEditor: FC<CodeEditorProps> = ({
     const monacoRef = useRef<MonacoInstance | null>(null);
     const decorationsRef = useRef<string[]>([]);
 
+    useEffect(() => {
+        const editor = editorRef.current;
+        if (!editor) return;
+
+        const currentValue = editor.getValue();
+        if (currentValue === value) return;
+
+        const viewState = editor.saveViewState();
+        editor.setValue(value);
+        if (viewState) {
+            editor.restoreViewState(viewState);
+        }
+    }, [value]);
+
     // computes: latest value per key for concise rendering
     const latestByKey = useMemo(() => {
         const map = new Map<string, CodeEditorLogEntry>();
@@ -316,9 +330,25 @@ const CodeEditor: FC<CodeEditorProps> = ({
         );
         monacoInstance.languages.typescript.typescriptDefaults.addExtraLib(
             `declare module "viem" {
+  export interface BlockRequest {
+    blockNumber?: bigint | number | string;
+    blockHash?: string;
+    blockTag?: string;
+    includeTransactions?: boolean;
+    [key: string]: unknown;
+  }
+
+  export interface RetrievedBlock {
+    hash?: string;
+    number?: bigint | null;
+    transactions: unknown[];
+    [key: string]: unknown;
+  }
+
   export function http(
     urlOrOptions?: string | { url?: string; batch?: { wait?: number; batchSize?: number }; [key: string]: unknown }
   ): unknown;
+
   export function createPublicClient(
     config: {
       chain: unknown;
@@ -326,9 +356,10 @@ const CodeEditor: FC<CodeEditorProps> = ({
       [key: string]: unknown;
     }
   ): {
-    getBlockNumber(): Promise<unknown>;
-    getChainId(): Promise<unknown>;
-    getGasPrice(): Promise<unknown>;
+    getBlockNumber(): Promise<bigint>;
+    getChainId(): Promise<number>;
+    getGasPrice(): Promise<bigint>;
+    getBlock(args?: BlockRequest): Promise<RetrievedBlock>;
   };
 }
 `,

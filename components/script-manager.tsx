@@ -16,6 +16,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Trash2 } from "lucide-react";
 import { motion } from "motion/react";
+import { getDefaultScriptContent } from "@/lib/scriptStorage";
 
 interface ScriptManagerProps {
     onScriptLoad?: (script: StoredScript) => void;
@@ -44,23 +45,35 @@ export const ScriptManager: FC<ScriptManagerProps> = ({
         setScripts(allScripts);
     };
 
+    const slugify = (input: string): string =>
+        input
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            || "script";
+
     const handleCreateScript = async () => {
         if (!newScript.name.trim()) return;
 
+        const now = new Date();
+        const slug = slugify(newScript.name);
         const script: StoredScript = {
             name: newScript.name.trim(),
-            content: "",
+            slug,
+            content: getDefaultScriptContent(),
             description: newScript.description.trim(),
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: now,
+            updatedAt: now,
         };
 
-        await scriptDb.scripts.add(script);
+        const id = await scriptDb.scripts.add(script);
+        const createdScript: StoredScript = { ...script, id };
 
         setNewScript({ name: "", description: "" });
         setShowCreateDialog(false);
         await loadScripts();
-        onScriptCreate?.(script);
+        onScriptCreate?.(createdScript);
     };
 
     const handleLoadScript = async (script: StoredScript) => {

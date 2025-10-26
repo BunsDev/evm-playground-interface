@@ -4,16 +4,51 @@ export const CURRENT_SCRIPT_KEY = "viem-playground-current-script";
 // gets: key for current script ID in localStorage
 export const CURRENT_SCRIPT_ID_KEY = "viem-playground-current-script-id";
 
+interface ScriptStorage {
+  CURRENT_SCRIPT_ID_KEY: string;
+}
+
+const getScriptIdStorageKey = (
+  scriptStorage: ScriptStorage = { CURRENT_SCRIPT_ID_KEY },
+): string => {
+  if (!isBrowser()) {
+    return scriptStorage.CURRENT_SCRIPT_ID_KEY;
+  }
+
+  try {
+    const scope = window.location.pathname || "/";
+    return `${scriptStorage.CURRENT_SCRIPT_ID_KEY}:${scope}`;
+  } catch (_) {
+    return scriptStorage.CURRENT_SCRIPT_ID_KEY;
+  }
+};
+
 const isBrowser = (): boolean =>
   typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 
 // gets: default script content
-export const DEFAULT_SCRIPT_TEMPLATE = `import { createPublicClient, http } from 'viem';
-import { mainnet } from 'viem/chains';
+export const DEFAULT_SCRIPT_TEMPLATE = `import { createPublicClient, defineChain, http } from 'viem';
 
-const transport = http("https://eth.llamarpc.com");
+const rpcUrl = "https://eth.llamarpc.com";
+
+const chain = defineChain({
+  id: 1,
+  name: "Ethereum Mainnet",
+  network: "mainnet",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: { http: [rpcUrl] },
+    public: { http: [rpcUrl] },
+  },
+});
+
+const transport = http(rpcUrl);
 const client = createPublicClient({
-  chain: mainnet,
+  chain,
   transport,
 });
 
@@ -64,10 +99,15 @@ export const loadStoredScript = (): string => {
 export const saveStoredScriptId = (scriptId: number | null): void => {
   if (!isBrowser()) return;
   try {
+    const scopedKey = getScriptIdStorageKey();
     if (scriptId === null) {
+      localStorage.removeItem(scopedKey);
       localStorage.removeItem(CURRENT_SCRIPT_ID_KEY);
     } else {
-      localStorage.setItem(CURRENT_SCRIPT_ID_KEY, scriptId.toString());
+      localStorage.setItem(scopedKey, scriptId.toString());
+      if (scopedKey !== CURRENT_SCRIPT_ID_KEY) {
+        localStorage.removeItem(CURRENT_SCRIPT_ID_KEY);
+      }
     }
   } catch (error) {
     console.error("Failed to save current script ID:", error);
@@ -81,8 +121,20 @@ export const loadStoredScriptId = (): number | null => {
     return null;
   }
   try {
-    const id = localStorage.getItem(CURRENT_SCRIPT_ID_KEY);
-    return id ? Number.parseInt(id, 10) : null;
+    const scopedKey = getScriptIdStorageKey();
+    const id = localStorage.getItem(scopedKey);
+    if (id) {
+      return Number.parseInt(id, 10);
+    }
+
+    const legacyId = localStorage.getItem(CURRENT_SCRIPT_ID_KEY);
+    if (!legacyId) {
+      return null;
+    }
+
+    localStorage.removeItem(CURRENT_SCRIPT_ID_KEY);
+    localStorage.setItem(scopedKey, legacyId);
+    return Number.parseInt(legacyId, 10);
   } catch (error) {
     console.error("Failed to load current script ID:", error);
     return null;

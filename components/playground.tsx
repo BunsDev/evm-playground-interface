@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, type FC } from "react";
+import { useState, useCallback, useEffect, useRef, type FC } from "react";
 import { transpileCode } from "@/lib/esbuild";
 import CodeEditor from "./code-editor";
 import ConsolePanel from "./console-panel";
@@ -51,6 +51,9 @@ const Playground: FC<PlaygroundProps> = ({
         return loadStoredScriptId();
     });
 
+    const previousScriptIdRef = useRef<number | null>(null);
+    const isResettingRef = useRef(false);
+
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [isRunning, setIsRunning] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -63,10 +66,17 @@ const Playground: FC<PlaygroundProps> = ({
     // handles: script loading - prioritize script library over session storage
     useEffect(() => {
         const loadScriptContent = async () => {
+            if (isResettingRef.current) {
+                isResettingRef.current = false;
+                return;
+            }
+
             if (currentScript) {
                 // current script from props takes priority
+                const scriptId = currentScript.id ?? null;
                 setCode(currentScript.content);
-                saveStoredScriptId(currentScript.id ?? null);
+                setSavedScriptId(scriptId);
+                saveStoredScriptId(scriptId);
             } else if (savedScriptId && !currentScript) {
                 // load saved script from database if we have an ID but no current script
                 try {
@@ -88,6 +98,11 @@ const Playground: FC<PlaygroundProps> = ({
             } else {
                 // no script selected: use session storage || default
                 setCode(loadStoredScript());
+                if (savedScriptId !== null) {
+                    setSavedScriptId(null);
+                }
+                saveStoredScriptId(null);
+                previousScriptIdRef.current = null;
             }
         };
 
@@ -96,19 +111,33 @@ const Playground: FC<PlaygroundProps> = ({
 
     // auto-saves: script content when it changes
     useEffect(() => {
-        if (currentScript && code !== currentScript.content) {
-            const saveScript = async () => {
-                try {
-                    await scriptDb.scripts.update(currentScript.id!, {
-                        content: code,
-                        updatedAt: new Date(),
-                    });
-                } catch (error) {
-                    console.error("Failed to save script:", error);
-                }
-            };
-            saveScript();
+        if (!currentScript || currentScript.id == null) {
+            previousScriptIdRef.current = null;
+            return;
         }
+
+        const currentId = currentScript.id;
+        if (previousScriptIdRef.current !== currentId) {
+            previousScriptIdRef.current = currentId;
+            return;
+        }
+
+        if (code === currentScript.content) {
+            return;
+        }
+
+        const saveScript = async () => {
+            try {
+                await scriptDb.scripts.update(currentId, {
+                    content: code,
+                    updatedAt: new Date(),
+                });
+            } catch (error) {
+                console.error("Failed to save script:", error);
+            }
+        };
+
+        void saveScript();
     }, [code, currentScript]);
 
     // auto-saves: to session storage for unsaved changes (when no script is selected)
@@ -186,6 +215,9 @@ const Playground: FC<PlaygroundProps> = ({
 
             // instruments: compiled JS, but only for variables declared in the user's source
             let instrumentedCode = compiledUserCode;
+            if (VERBOSE_LOGS) {
+                console.debug("[playground] compiled user code:\n", compiledUserCode);
+            }
             if (userVarNames.length > 0) {
                 const nameAlternation = userVarNames
                     .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
@@ -224,14 +256,12 @@ const Playground: FC<PlaygroundProps> = ({
                 );
             }
 
-            // converts: console.log(...) to structured logs with args preserved
-            instrumentedCode = instrumentedCode.replace(
-                /console\.log\(([^)]*)\);?/g,
-                '__log("console", [ $1 ]);'
-            );
+            if (VERBOSE_LOGS) {
+                console.debug("[playground] instrumented code:\n", instrumentedCode);
+            }
 
             // gets: ABIs for runtime injection
-            const globalABIs: Record<string, any[]> = {};
+            const globalABIs: Record<string, unknown> = {};
             const storedABIs = await abiDb.abis.toArray();
             storedABIs.forEach((abi) => {
                 globalABIs[abi.name] = abi.abi;
@@ -311,9 +341,19 @@ const Playground: FC<PlaygroundProps> = ({
           window.__logs.push(log);
           window.parent.postMessage({ type: 'LOG', payload: log }, '*');
           // Avoid noisy console mirroring for internal keys
-          if (!['script','viem','user-code','success'].includes(key)) {
-            try { console.log(key + ':', value); } catch (_) {}
+          if (!['script','viem','user-code','success','console'].includes(key) && window.__originalConsoleLog) {
+            try { window.__originalConsoleLog(key + ':', value); } catch (_) {}
           }
+        };
+
+        window.__originalConsoleLog = console.log.bind(console);
+        console.log = function(...args) {
+          try {
+            window.__log('console', args);
+          } catch (_) {}
+          try {
+            window.__originalConsoleLog(...args);
+          } catch (_) {}
         };
 
         // Forward runtime errors to the parent so they appear in the UI
@@ -480,8 +520,8 @@ const Playground: FC<PlaygroundProps> = ({
                     document.body.removeChild(iframe);
                 }
                 setIsRunning(false);
-            // allows: 8 seconds for execution
-            }, 8000); 
+                // allows: 8 seconds for execution
+            }, 8_000);
         } catch (err) {
             console.error("Execution error:", err);
             handleError(err as Error);
@@ -500,17 +540,15 @@ const Playground: FC<PlaygroundProps> = ({
     };
 
     const handleReset = () => {
-        if (currentScript) {
-            setCode(currentScript.content);
-        } else {
-            const defaultScript = getDefaultScriptContent();
-            setCode(defaultScript);
-            // clears: session storage when resetting to default
-            saveStoredScript(defaultScript);
-        }
+        const defaultCode = getDefaultScriptContent();
+        isResettingRef.current = true;
+        previousScriptIdRef.current = null;
+        setSavedScriptId(null);
+        saveStoredScriptId(null);
+        saveStoredScript(defaultCode);
+        setCode(defaultCode);
         setLogs([]);
         setError(null);
-        setIsRunning(false);
     };
 
     return (
@@ -518,7 +556,7 @@ const Playground: FC<PlaygroundProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
                 <div className="flex items-center gap-4">
-                    <h1 className="text-xl font-bold text-gray-900">EVM Playground</h1>
+                    <h1 className="text-xl font-bold text-gray-900">Playground</h1>
                     {currentScript ? (
                         <div className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded">
                             {currentScript.name}
