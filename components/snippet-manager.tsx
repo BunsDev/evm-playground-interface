@@ -52,8 +52,10 @@ export const SnippetManager: FC<SnippetManagerProps> = ({ onSnippetInsert }) => 
         onSnippetInsert?.(snippet);
     };
 
+    const summaryId = previewSnippet ? `snippet-preview-${previewSnippet.slug}-summary` : undefined;
+
     return (
-        <div className="flex h-full flex-col rounded-3xl border border-zinc-200/70 bg-white/70 shadow-lg shadow-zinc-200/40 backdrop-blur px-5 py-6 dark:border-zinc-700/60 dark:bg-zinc-900/70 dark:shadow-zinc-900/40">
+        <div className="flex flex-col overflow-auto h-dvh w-full py-12 rounded-3xl border border-zinc-200/70 bg-white/70 shadow-lg shadow-zinc-200/40 backdrop-blur px-5 dark:border-zinc-700/60 dark:bg-zinc-900/70 dark:shadow-zinc-900/40">
             <div className="space-y-2">
                 <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300">
                     Snippet Library
@@ -73,8 +75,8 @@ export const SnippetManager: FC<SnippetManagerProps> = ({ onSnippetInsert }) => 
                 )}
             </div>
 
-            <ScrollArea className="mt-4 flex-1">
-                <div className="space-y-2 pb-6 w-full">
+            <ScrollArea className="flex flex-col overflow-auto mt-4 h-full">
+                <div className="flex flex-col space-y-2 pb-12 h-full w-full">
                     {snippets.map((snippet) => (
                         <div
                             key={snippet.slug}
@@ -132,14 +134,27 @@ export const SnippetManager: FC<SnippetManagerProps> = ({ onSnippetInsert }) => 
             </ScrollArea>
 
             <Dialog open={Boolean(previewSnippet)} onOpenChange={() => setPreviewSnippet(null)}>
-                <DialogContent className="max-h-[60vh] sm:max-w-2xl">
+                <DialogContent
+                    className="max-h-[60vh] sm:max-w-2xl"
+                    aria-describedby={summaryId ?? "snippet-preview-fallback-description"}
+                >
                     <DialogHeader>
                         <DialogTitle className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                             {previewSnippet?.title}
                         </DialogTitle>
-                        {previewSnippet?.summary && (
-                            <DialogDescription className="text-sm text-zinc-600 dark:text-zinc-400">
+                        {previewSnippet?.summary ? (
+                            <DialogDescription
+                                id={summaryId}
+                                className="text-sm text-zinc-600 dark:text-zinc-400"
+                            >
                                 {previewSnippet.summary}
+                            </DialogDescription>
+                        ) : (
+                            <DialogDescription
+                                id="snippet-preview-fallback-description"
+                                className="sr-only"
+                            >
+                                Preview snippet source code before inserting into the editor.
                             </DialogDescription>
                         )}
                     </DialogHeader>
