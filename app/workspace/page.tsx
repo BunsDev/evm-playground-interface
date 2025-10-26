@@ -5,13 +5,14 @@ import Playground from "@/components/playground";
 import Sidebar from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { Library } from "lucide-react";
-import type { StoredScript } from "@/lib/abiDatabase";
+import type { CodeSnippet, StoredScript } from "@/lib/abiDatabase";
 import { scriptDb } from "@/lib/abiDatabase";
 
 function App() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [abiRefreshKey, setAbiRefreshKey] = useState(0);
   const [currentScript, setCurrentScript] = useState<StoredScript | null>(null);
+  const [pendingSnippet, setPendingSnippet] = useState<CodeSnippet | null>(null);
 
   // Load saved script on app initialization
   useEffect(() => {
@@ -49,6 +50,10 @@ function App() {
     setShowSidebar(false);
   };
 
+  const handleSnippetInsert = (snippet: CodeSnippet) => {
+    setPendingSnippet(snippet);
+  };
+
   return (
     <div className="h-screen flex">
       {/* Main Playground */}
@@ -56,6 +61,8 @@ function App() {
         <Playground
           abiRefreshKey={abiRefreshKey}
           currentScript={currentScript}
+          pendingSnippet={pendingSnippet}
+          onSnippetConsumed={() => setPendingSnippet(null)}
         />
       </div>
 
@@ -67,6 +74,7 @@ function App() {
         onScriptCreate={handleScriptCreate}
         onABIChange={handleABIChange}
         currentScript={currentScript}
+        onSnippetInsert={handleSnippetInsert}
       />
 
       {/* Toggle Sidebar Button */}

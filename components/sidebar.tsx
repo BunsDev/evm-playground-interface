@@ -8,7 +8,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ABIManager } from "./abi-manager";
 import { ScriptManager } from "./script-manager";
-import type { StoredScript } from "@/lib/abiDatabase";
+import { SnippetManager } from "./snippet-manager";
+import type { CodeSnippet, StoredScript } from "@/lib/abiDatabase";
 
 interface SidebarProps {
   open: boolean;
@@ -17,6 +18,7 @@ interface SidebarProps {
   onScriptCreate?: (script: StoredScript) => void;
   onABIChange?: () => void;
   currentScript?: StoredScript | null;
+  onSnippetInsert?: (snippet: CodeSnippet) => void;
 }
 
 const Sidebar = ({
@@ -26,6 +28,7 @@ const Sidebar = ({
   onScriptCreate,
   onABIChange,
   currentScript,
+  onSnippetInsert,
 }: SidebarProps) => {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -35,8 +38,9 @@ const Sidebar = ({
         </SheetHeader>
         <div className="px-6">
           <Tabs defaultValue="scripts" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="scripts">Scripts</TabsTrigger>
+              <TabsTrigger value="snippets">Snippets</TabsTrigger>
               <TabsTrigger value="abis">ABIs</TabsTrigger>
             </TabsList>
             <TabsContent value="scripts" className="mt-4">
@@ -45,6 +49,9 @@ const Sidebar = ({
                 onScriptCreate={onScriptCreate}
                 currentScript={currentScript}
               />
+            </TabsContent>
+            <TabsContent value="snippets" className="mt-4">
+              <SnippetManager onSnippetInsert={onSnippetInsert} />
             </TabsContent>
             <TabsContent value="abis" className="mt-4">
               <ABIManager onABIChange={onABIChange} />

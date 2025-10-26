@@ -4,7 +4,7 @@ import CodeEditor from "./code-editor";
 import ConsolePanel from "./console-panel";
 import { Play, Square, RotateCcw } from "lucide-react";
 import { abiDb, scriptDb } from "@/lib/abiDatabase";
-import type { StoredScript } from "@/lib/abiDatabase";
+import type { CodeSnippet, StoredScript } from "@/lib/abiDatabase";
 import { Button } from "@/components/ui/button";
 import {
     loadStoredScript,
@@ -27,11 +27,15 @@ export interface LogEntry {
 interface PlaygroundProps {
     abiRefreshKey?: number;
     currentScript?: StoredScript | null;
+    pendingSnippet?: CodeSnippet | null;
+    onSnippetConsumed?: () => void;
 }
 
 const Playground: FC<PlaygroundProps> = ({
     abiRefreshKey = 0,
     currentScript = null,
+    pendingSnippet = null,
+    onSnippetConsumed,
 }) => {
     const VERBOSE_LOGS = false;
     const isTestEnv =
@@ -108,6 +112,19 @@ const Playground: FC<PlaygroundProps> = ({
 
         loadScriptContent();
     }, [currentScript, savedScriptId]);
+
+    useEffect(() => {
+        if (!pendingSnippet) return;
+
+        setCode((prev) => {
+            const base = prev ?? "";
+            const needsSeparator = base.trim().length > 0 && !base.endsWith("\n\n");
+            const separator = needsSeparator ? "\n\n" : base.endsWith("\n") ? "\n" : "";
+            return `${base}${separator}${pendingSnippet.content}`;
+        });
+
+        onSnippetConsumed?.();
+    }, [pendingSnippet, onSnippetConsumed]);
 
     // auto-saves: script content when it changes
     useEffect(() => {

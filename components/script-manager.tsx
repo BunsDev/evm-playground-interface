@@ -17,7 +17,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Trash2 } from "lucide-react";
 import { motion } from "motion/react";
 import { getDefaultScriptContent } from "@/lib/scriptStorage";
-
 interface ScriptManagerProps {
     onScriptLoad?: (script: StoredScript) => void;
     onScriptCreate?: (script: StoredScript) => void;
@@ -51,7 +50,7 @@ export const ScriptManager: FC<ScriptManagerProps> = ({
             .trim()
             .replace(/[^a-z0-9]+/g, "-")
             .replace(/^-+|-+$/g, "")
-            || "script";
+        || "script";
 
     const handleCreateScript = async () => {
         if (!newScript.name.trim()) return;
