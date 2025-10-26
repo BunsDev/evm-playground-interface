@@ -6,8 +6,8 @@ import {
     useMemo,
     useState,
 } from "react";
-import Playground from "@/components/ui/playground";
-import { ABIManager } from "@/components/ui/abi-manager";
+import Playground from "@/components/playground";
+import { ABIManager } from "@/components/abi-manager";
 import { Button } from "@/components/ui/button";
 import { scriptDb } from "@/lib/abiDatabase";
 import type { StoredScript } from "@/lib/abiDatabase";
@@ -16,7 +16,15 @@ import {
     loadStoredScriptId,
     saveStoredScriptId,
 } from "@/lib/scriptStorage";
-import { Loader2, Plus, RefreshCw, SlidersHorizontal } from "lucide-react";
+import {
+    ChevronDown,
+    ChevronUp,
+    Loader2,
+    Plus,
+    RefreshCw,
+    SlidersHorizontal,
+} from "lucide-react";
+import { motion } from "motion/react";
 
 const WorkspacePage = () => {
     const [scripts, setScripts] = useState<StoredScript[]>([]);
@@ -25,6 +33,7 @@ const WorkspacePage = () => {
     const [abiRefreshKey, setAbiRefreshKey] = useState(0);
     const [showAbiPanelMobile, setShowAbiPanelMobile] = useState(false);
     const [showScriptListMobile, setShowScriptListMobile] = useState(false);
+    const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
 
     const timestampFormatter = useMemo(
         () =>
@@ -160,14 +169,12 @@ const WorkspacePage = () => {
                             const isActive = script.id === selectedScriptId;
                             return (
                                 <li key={script.id}>
-                                    <Button
-                                        type="button"
+                                    <motion.div
                                         onClick={() => script.id && handleSelectScript(script.id)}
-                                        className={`flex w-full flex-col gap-1 px-4 py-3 text-left transition ${
-                                            isActive
+                                        className={`flex w-full flex-col gap-1 px-4 py-3 text-left transition ${isActive
                                                 ? "bg-zinc-900 text-zinc-50"
                                                 : "hover:bg-zinc-100"
-                                        }`}
+                                            }`}
                                     >
                                         <div className="flex items-center justify-between gap-2">
                                             <span className="text-sm font-semibold">
@@ -192,7 +199,7 @@ const WorkspacePage = () => {
                                         <span className="text-xs text-zinc-400">
                                             Updated {formatUpdatedAt(script.updatedAt)}
                                         </span>
-                                    </Button>
+                                    </motion.div>
                                 </li>
                             );
                         })}
@@ -213,44 +220,71 @@ const WorkspacePage = () => {
     return (
         <div className="flex min-h-screen flex-col bg-zinc-50 text-zinc-900">
             <header className="border-b border-zinc-200 bg-white">
-                <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Workspace</h1>
-                        <p className="mt-1 text-sm text-zinc-500">
-                            Iterate on scripts, manage ABIs, and inspect execution results in one surface.
-                        </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Button onClick={handleCreateScript} className="gap-2">
-                            <Plus className="h-4 w-4" />
-                            New script
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="gap-2 md:hidden"
-                            onClick={() => setShowScriptListMobile((prev) => !prev)}
-                        >
-                            <RefreshCw className="h-4 w-4" />
-                            Scripts
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="gap-2 lg:hidden"
-                            onClick={() => setShowAbiPanelMobile((prev) => !prev)}
-                        >
-                            <SlidersHorizontal className="h-4 w-4" />
-                            ABI library
-                        </Button>
+                {isHeaderCollapsed ? (
+                    <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between px-6 py-2">
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-lg font-semibold tracking-tight text-zinc-950">Workspace</h1>
+                            <span className="hidden text-xs text-zinc-500 sm:inline">
+                                Header minimized
+                            </span>
+                        </div>
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="hidden h-9 w-9 md:inline-flex"
-                            onClick={() => void loadScripts()}
+                            aria-label="Expand workspace header"
+                            onClick={() => setIsHeaderCollapsed(false)}
                         >
-                            <RefreshCw className="h-4 w-4" />
+                            <ChevronDown className="h-4 w-4" />
                         </Button>
                     </div>
-                </div>
+                ) : (
+                    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Workspace</h1>
+                            <p className="mt-1 text-sm text-zinc-500">
+                                Iterate on scripts, manage ABIs, and inspect execution results in one surface.
+                            </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button onClick={handleCreateScript} className="gap-2">
+                                <Plus className="h-4 w-4" />
+                                New script
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="gap-2 md:hidden"
+                                onClick={() => setShowScriptListMobile((prev) => !prev)}
+                            >
+                                <RefreshCw className="h-4 w-4" />
+                                Scripts
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="gap-2 lg:hidden"
+                                onClick={() => setShowAbiPanelMobile((prev) => !prev)}
+                            >
+                                <SlidersHorizontal className="h-4 w-4" />
+                                ABI library
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="hidden h-9 w-9 md:inline-flex"
+                                onClick={() => void loadScripts()}
+                            >
+                                <RefreshCw className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label="Collapse workspace header"
+                                onClick={() => setIsHeaderCollapsed(true)}
+                            >
+                                <ChevronUp className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </header>
 
             {/** Mobile script drawer */}
