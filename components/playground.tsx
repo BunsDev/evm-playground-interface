@@ -11,6 +11,8 @@ import {
     saveStoredSnippet,
     getDefaultSnippetContent,
 } from "@/lib/snippetStorage";
+import { DEFAULT_RPC_URL, loadRpcUrl, saveRpcUrl } from "@/lib/runtimeConfig";
+import { Input } from "@/components/ui/input";
 
 export interface LogEntry {
     key: string;
@@ -50,6 +52,7 @@ const Playground: FC<PlaygroundProps> = ({
     const [isRunning, setIsRunning] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showInlineLogs] = useState(true);
+    const [rpcUrl, setRpcUrl] = useState(() => loadRpcUrl());
 
     const handleLog = useCallback((log: LogEntry) => {
         setLogs((prev) => [...prev, log]);
@@ -91,7 +94,7 @@ const Playground: FC<PlaygroundProps> = ({
             // TODO: improve this later with proper bundling
 
             // transpiles user code (TypeScript) to JavaScript via esbuild
-            const compiledUserCode = await transpileCode(code);
+            const compiledUserCode = await transpileCode(code, { rpcUrl });
 
             if (isTestEnv) {
                 handleLog({
@@ -472,6 +475,11 @@ const Playground: FC<PlaygroundProps> = ({
         setError(null);
     };
 
+    const handleRpcUrlChange = (value: string) => {
+        setRpcUrl(value);
+        saveRpcUrl(value);
+    };
+
     return (
         <div className="relative flex h-screen w-full bg-linear-to-br from-zinc-100 via-white to-zinc-50 text-zinc-900 dark:from-zinc-950 dark:via-zinc-950/95 dark:to-zinc-900 dark:text-zinc-50">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(244,244,255,0.6),transparent_55%)] dark:bg-[radial-gradient(circle_at_top,rgba(63,63,96,0.35),transparent_55%)]" />
@@ -491,7 +499,22 @@ const Playground: FC<PlaygroundProps> = ({
                                 </p>
                             </div>
                         </div>
-                        <div className="flex flex-cols items-center gap-2">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
+                            <div className="flex flex-1 flex-col gap-2">
+                                <label
+                                    className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400"
+                                    htmlFor="rpc-url-input"
+                                >
+                                    RPC URL
+                                </label>
+                                <Input
+                                    id="rpc-url-input"
+                                    value={rpcUrl}
+                                    onChange={(event) => handleRpcUrlChange(event.target.value)}
+                                    placeholder={DEFAULT_RPC_URL}
+                                    className="rounded-full border-zinc-200/70 bg-white/80 text-xs font-medium text-zinc-700 shadow-sm focus-visible:ring-2 focus-visible:ring-zinc-400 dark:border-zinc-700/70 dark:bg-zinc-900/70 dark:text-zinc-200 dark:focus-visible:ring-zinc-500"
+                                />
+                            </div>
                             <Button
                                 onClick={handleRun}
                                 disabled={isRunning}

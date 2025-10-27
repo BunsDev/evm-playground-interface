@@ -4,7 +4,7 @@ import type { CodeSnippet } from "./abiDatabase";
 // gets: key for current script in localStorage
 export const CURRENT_SCRIPT_KEY = "viem-playground-current-script";
 
-const SNIPPET_LIBRARY_VERSION = "2025-10-26-core-refresh-2";
+const SNIPPET_LIBRARY_VERSION = "2025-10-26-global-client-refresh";
 const SNIPPET_LIBRARY_VERSION_KEY = "viem-playground-snippet-library-version";
 
 const LEGACY_FALLBACK_SLUGS = [
@@ -29,13 +29,9 @@ const CORE_SNIPPET_DEFAULTS: CodeSnippet[] = [
     category: "account",
     summary: "Retrieve balance, code, transaction count, and storage root for an address.",
     content: snippet([
-      'import { createPublicClient, http } from "viem";',
-      'import { mainnet } from "viem/chains";',
+      'import { getPublicClient } from "viem-playground-client";',
       "",
-      "const client = createPublicClient({",
-      "  chain: mainnet,",
-      '  transport: http("https://eth.llamarpc.com"),',
-      "}) as any;",
+      "const client = getPublicClient();",
       "",
       "export async function getAccountDefaults(address: string) {",
       "  try {",
@@ -72,13 +68,9 @@ const CORE_SNIPPET_DEFAULTS: CodeSnippet[] = [
     category: "blocks",
     summary: "Fetch a block with transaction and state roots alongside fee data.",
     content: snippet([
-      'import { createPublicClient, http } from "viem";',
-      'import { mainnet } from "viem/chains";',
+      'import { getPublicClient } from "viem-playground-client";',
       "",
-      "const client = createPublicClient({",
-      "  chain: mainnet,",
-      '  transport: http("https://eth.llamarpc.com"),',
-      "}) as any;",
+      "const client = getPublicClient();",
       "",
       "export async function getLatestBlock() {",
       "  try {",
@@ -115,13 +107,10 @@ const CORE_SNIPPET_DEFAULTS: CodeSnippet[] = [
     category: "contracts",
     summary: "Read code, ABI from your registry, and transaction count for a contract address.",
     content: snippet([
-      'import { createPublicClient, http, keccak256 } from "viem";',
-      'import { mainnet } from "viem/chains";',
+      'import { getPublicClient } from "viem-playground-client";',
+      'import { keccak256 } from "viem";',
       "",
-      "const client = createPublicClient({",
-      "  chain: mainnet,",
-      '  transport: http("https://eth.llamarpc.com"),',
-      "}) as any;",
+      "const client = getPublicClient();",
       "",
       "export async function getContractDefaults(address: string) {",
       "  try {",
@@ -155,13 +144,9 @@ const CORE_SNIPPET_DEFAULTS: CodeSnippet[] = [
     category: "gas",
     summary: "Produce max fee, priority fee, and gas limits for a contract call.",
     content: snippet([
-      'import { createPublicClient, http } from "viem";',
-      'import { mainnet } from "viem/chains";',
+      'import { getPublicClient } from "viem-playground-client";',
       "",
-      "const client = createPublicClient({",
-      "  chain: mainnet,",
-      '  transport: http("https://eth.llamarpc.com"),',
-      "}) as any;",
+      "const client = getPublicClient();",
       "",
       "export async function estimateGasWithFees(request: {",
       "  account: string;",
@@ -207,13 +192,9 @@ const CORE_SNIPPET_DEFAULTS: CodeSnippet[] = [
     category: "transactions",
     summary: "Pull a transaction by hash and map core fields for diagnostics.",
     content: snippet([
-      'import { createPublicClient, http } from "viem";',
-      'import { mainnet } from "viem/chains";',
+      'import { getPublicClient } from "viem-playground-client";',
       "",
-      "const client = createPublicClient({",
-      "  chain: mainnet,",
-      '  transport: http("https://eth.llamarpc.com"),',
-      "}) as any;",
+      "const client = getPublicClient();",
       "",
       "export async function getTransactionDefaults(hash: `0x<tx-hash>`) {",
       "  try {",
@@ -313,36 +294,16 @@ export const clearSnippetCache = async (): Promise<void> => {
 };
 
 // gets: default script content
-export const DEFAULT_SCRIPT_TEMPLATE = `import { createPublicClient, defineChain, http } from 'viem';
+export const DEFAULT_SCRIPT_TEMPLATE = `import { getPublicClient, rpcUrl } from 'viem-playground-client';
 
-const rpcUrl = "https://eth.llamarpc.com";
-
-const chain = defineChain({
-  id: 1,
-  name: "Ethereum Mainnet",
-  network: "mainnet",
-  nativeCurrency: {
-    name: "Ether",
-    symbol: "ETH",
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: { http: [rpcUrl] },
-    public: { http: [rpcUrl] },
-  },
-});
-
-const transport = http(rpcUrl);
-const client = createPublicClient({
-  chain,
-  transport,
-});
+const client = getPublicClient();
 
 try {
   const blockNumber = await client.getBlockNumber();
   const chainId = await client.getChainId();
   const gasPrice = await client.getGasPrice();
 
+  console.log('Connected RPC:', rpcUrl);
   console.log('Latest block:', blockNumber);
   console.log('Chain ID:', chainId);
   console.log('Gas Price:', gasPrice);

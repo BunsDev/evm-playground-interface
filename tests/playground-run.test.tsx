@@ -122,6 +122,10 @@ describe("Playground run workflow", () => {
     expect(runButton).toBeDisabled();
     expect(runButton).toHaveTextContent("Running...");
     expect(transpileCode).toHaveBeenCalledTimes(1);
+    expect(transpileCode).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ rpcUrl: expect.any(String) })
+    );
 
     await vi.runAllTimersAsync();
 
@@ -149,5 +153,9 @@ describe("Playground run workflow", () => {
     await waitFor(() => {
       expect(runButton).not.toBeDisabled();
     });
+    expect(transpileCode).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ rpcUrl: expect.any(String) })
+    );
   });
 });

@@ -438,6 +438,35 @@ const CodeEditor: FC<CodeEditorProps> = ({
             "file:///types/runtime-globals.d.ts"
         );
 
+        monacoInstance.languages.typescript.typescriptDefaults.addExtraLib(
+            `declare module "viem-playground-client" {
+  import type { createPublicClient } from "viem";
+  import type { Chain } from "viem/chains";
+
+  type PublicClient = ReturnType<typeof createPublicClient>;
+  type PublicClientConfig = Parameters<typeof createPublicClient>[0];
+
+  export const rpcUrl: string;
+  export const defaultChain: Chain;
+  export const chain: Chain;
+  export const transport: PublicClientConfig["transport"];
+  export const publicClient: PublicClient;
+
+  export const getRpcUrl: () => string;
+  export const getChain: () => Chain;
+  export const getTransport: () => PublicClientConfig["transport"];
+  export const getPublicClient: () => PublicClient;
+
+  export const configurePublicClient: (
+    options?: Partial<PublicClientConfig> & { rpcUrl?: string }
+  ) => PublicClient;
+
+  export const resetPublicClient: () => PublicClient;
+}
+`,
+            "file:///types/viem-playground-client.d.ts"
+        );
+
         // adds: global ABI declarations as literal-typed constants
         const { globalsDts, files } = await generateABIGlobals();
         for (const f of files) {

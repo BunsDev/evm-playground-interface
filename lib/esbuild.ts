@@ -1,5 +1,6 @@
 import * as esbuild from "esbuild-wasm";
-import type { Plugin } from "esbuild-wasm";
+import type { OnLoadResult, Plugin } from "esbuild-wasm";
+import { DEFAULT_RPC_URL } from "./runtimeConfig";
 
 let esbuildInitialized = false;
 
@@ -85,7 +86,8 @@ function httpPlugin(cdnBase: string = DEFAULT_CDN_ORIGIN): Plugin {
         else if (args.path.endsWith(".json")) loader = "json";
         // Provide a resolveDir so further relative imports are resolved against this URL
         const resolveDir = new URL("./", args.path).toString();
-        return { contents, loader, resolveDir } as any;
+        const result: OnLoadResult = { contents, loader, resolveDir };
+        return result;
       });
     },
   };
@@ -94,10 +96,146 @@ function httpPlugin(cdnBase: string = DEFAULT_CDN_ORIGIN): Plugin {
 /**
  * Transpiles user-authored scripts (potentially TypeScript) into ESM fit for sandbox execution.
  */
-export const transpileCode = async (code: string): Promise<string> => {
+export type TranspileOptions = {
+  rpcUrl?: string;
+};
+
+const createViemClientVirtualModule = (rpcUrl: string): Plugin => {
+  const moduleId = "viem-playground-client";
+
+  return {
+    name: "viem-playground-client-virtual-module",
+    setup(build) {
+      build.onResolve({ filter: /^viem-playground-client$/ }, (args) => ({
+        path: args.path,
+        namespace: moduleId,
+      }));
+
+      build.onLoad({ filter: /.*/, namespace: moduleId }, () => ({
+        contents: `import { createPublicClient, defineChain, http } from "viem";
+
+type PublicClientConfig = Parameters<typeof createPublicClient>[0];
+type PublicClient = ReturnType<typeof createPublicClient>;
+type ConfigurePublicClientOptions = Partial<PublicClientConfig> & {
+  rpcUrl?: string;
+};
+
+const initialRpcUrl = ${JSON.stringify(rpcUrl)};
+let currentRpcUrl = initialRpcUrl;
+export let rpcUrl = currentRpcUrl;
+
+const baseChain = defineChain({
+  id: 1,
+  name: "Custom RPC",
+  network: "custom",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: { http: [initialRpcUrl] },
+    public: { http: [initialRpcUrl] },
+  },
+});
+
+export const defaultChain = baseChain;
+
+const initialChain = baseChain;
+let currentChain = initialChain;
+export let chain = currentChain;
+
+const initialTransport = http(initialRpcUrl);
+let currentTransport = initialTransport;
+export let transport = currentTransport;
+
+let currentClient: PublicClient = createPublicClient({
+  chain: currentChain,
+  transport: currentTransport,
+});
+export let publicClient = currentClient;
+
+export const getRpcUrl = () => currentRpcUrl;
+export const getChain = () => currentChain;
+export const getTransport = () => currentTransport;
+export const getPublicClient = () => publicClient;
+
+export const configurePublicClient = (
+  options: ConfigurePublicClientOptions = {}
+) => {
+  const { rpcUrl: rpcUrlOverride, ...configOverrides } = options;
+  const trimmedRpcUrl = rpcUrlOverride?.trim();
+
+  if (trimmedRpcUrl && trimmedRpcUrl.length > 0) {
+    currentRpcUrl = trimmedRpcUrl;
+    rpcUrl = currentRpcUrl;
+  }
+
+  const transportOverride =
+    configOverrides.transport ??
+    (trimmedRpcUrl && trimmedRpcUrl.length > 0
+      ? http(currentRpcUrl)
+      : undefined);
+
+  if (transportOverride) {
+    currentTransport = transportOverride;
+    transport = currentTransport;
+  }
+
+  if (configOverrides.chain) {
+    currentChain = configOverrides.chain;
+  } else if (trimmedRpcUrl && trimmedRpcUrl.length > 0) {
+    currentChain = {
+      ...currentChain,
+      rpcUrls: {
+        default: { http: [currentRpcUrl] },
+        public: { http: [currentRpcUrl] },
+      },
+    };
+  }
+  chain = currentChain;
+
+  const nextConfig: PublicClientConfig = {
+    ...configOverrides,
+    chain: currentChain,
+    transport: currentTransport,
+  };
+
+  currentClient = createPublicClient(nextConfig);
+  publicClient = currentClient;
+  return publicClient;
+};
+
+export const resetPublicClient = () => {
+  currentRpcUrl = initialRpcUrl;
+  rpcUrl = currentRpcUrl;
+  currentChain = initialChain;
+  chain = currentChain;
+  currentTransport = http(initialRpcUrl);
+  transport = currentTransport;
+  currentClient = createPublicClient({
+    chain: currentChain,
+    transport: currentTransport,
+  });
+  publicClient = currentClient;
+  return publicClient;
+};
+`,
+        loader: "ts",
+      }));
+    },
+  };
+};
+
+export const transpileCode = async (
+  code: string,
+  options: TranspileOptions = {}
+): Promise<string> => {
   await initializeEsbuild();
 
   try {
+    const { rpcUrl = DEFAULT_RPC_URL } = options;
+
     const stdinPlugin: Plugin = {
       name: "stdin-plugin",
       setup(build) {
@@ -121,7 +259,7 @@ export const transpileCode = async (code: string): Promise<string> => {
       write: false,
       format: "esm",
       target: "esnext",
-      plugins: [stdinPlugin, httpPlugin()],
+      plugins: [stdinPlugin, createViemClientVirtualModule(rpcUrl), httpPlugin()],
       outdir: "out",
       entryNames: "app",
       absWorkingDir: "/",

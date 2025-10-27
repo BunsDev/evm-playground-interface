@@ -195,16 +195,17 @@ export const erc20Minimal: Abi = [
   {
     id: 2,
     slug: "setup-public-client",
-    title: "Create a viem public client",
+    title: "Access the shared viem client",
     category: "setup",
-    summary: "Bootstrap a viem public client pointed at Ethereum mainnet.",
-    content: `import { createPublicClient, http } from "viem";
-import { mainnet } from "viem/chains";
+    summary: "Use the globally configured viem public client across scripts.",
+    content: `import { configurePublicClient, getPublicClient, rpcUrl } from "viem-playground-client";
 
-export const client = createPublicClient({
-  chain: mainnet,
-  transport: http("https://eth.llamarpc.com"),
-});
+// Optionally swap the transport before use (e.g., target a local node)
+configurePublicClient({ rpcUrl: "http://127.0.0.1:8545" });
+
+const client = getPublicClient();
+
+console.log("Configured RPC:", rpcUrl);
 `,
   },
 ];
